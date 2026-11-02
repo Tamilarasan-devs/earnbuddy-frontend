@@ -215,37 +215,6 @@ const Login = () => {
                 </>
               )}
             </button>
-            
-            {/* Quick Login Buttons for Development/Testing */}
-            <div className="pt-4 mt-4 border-t border-gray-300">
-              <p className="text-xs font-medium text-gray-600 text-center mb-3">Quick Login (Testing Only)</p>
-              <div className="flex gap-3">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setError('');
-                    setFieldError('');
-                    setEmail('tamilarasan@gmail.com');
-                    setPassword('admin');
-                  }}
-                  className="flex-1 bg-[#4A3AFF] hover:bg-[#3b2ec2] text-white rounded-xl py-2.5 text-xs font-bold transition-colors shadow-sm"
-                >
-                  Fill Admin
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setError('');
-                    setFieldError('');
-                    setEmail('user@example.com');
-                    setPassword('password');
-                  }}
-                  className="flex-1 bg-gray-800 hover:bg-gray-900 text-white rounded-xl py-2.5 text-xs font-bold transition-colors shadow-sm"
-                >
-                  Fill Casual
-                </button>
-              </div>
-            </div>
           </form>
           
           <p className="mt-8 text-center text-sm font-medium text-gray-700">
