@@ -373,7 +373,7 @@ const Profile = () => {
                 </div>
                 <div className="flex items-center gap-2 mt-1">
                   <span className="text-xs font-mono font-black text-[#4A3AFF] bg-white px-2 py-0.5 rounded-lg border border-indigo-100">
-                    {user?.referralCode || 'CASHLY'}
+                    {user?.referralCode || 'THECASHLY'}
                   </span>
                   <button
                     type="button"

@@ -133,7 +133,7 @@ const Home = () => {
             <div className="w-8 h-8 bg-[#4A3AFF] rounded-[10px] flex items-center justify-center shadow-md">
               <Wallet size={18} className="text-white" fill="currentColor" />
             </div>
-            <h1 className="text-xl font-extrabold text-[#0F172A] tracking-tight">Cashly</h1>
+            <h1 className="text-xl font-extrabold text-[#0F172A] tracking-tight">The Cashly</h1>
           </div>
           <div className="flex items-center space-x-3">
             <button className="relative w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-[0_2px_15px_rgb(0,0,0,0.06)] border border-gray-100 text-gray-700">
@@ -151,7 +151,7 @@ const Home = () => {
           <h2 className="text-[22px] font-extrabold text-[#0F172A] flex items-center gap-2 tracking-tight">
             Hello, {user?.name.split(' ')[0]} <span className="text-2xl">👋</span>
           </h2>
-          <p className="text-[13px] text-[#475569] font-semibold mt-1">Welcome back to Cashly</p>
+          <p className="text-[13px] text-[#475569] font-semibold mt-1">Welcome back to The Cashly</p>
         </div>
 
         {/* Balance Card */}

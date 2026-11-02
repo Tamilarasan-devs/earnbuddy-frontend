@@ -44,7 +44,7 @@ const AdminDashboard = () => {
     <div className="space-y-8">
       <div>
         <h1 className="text-3xl font-extrabold text-[#0F172A] tracking-tight">System Overview</h1>
-        <p className="text-gray-500 mt-1 font-medium">Here's what's happening with Cashly today.</p>
+        <p className="text-gray-500 mt-1 font-medium">Here's what's happening with The Cashly today.</p>
       </div>
       
       <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-5">

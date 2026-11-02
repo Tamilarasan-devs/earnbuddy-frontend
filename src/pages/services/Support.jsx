@@ -396,7 +396,7 @@ const Support = () => {
                               <div className="flex items-center justify-between mb-1 gap-2">
                                 <div className="flex items-center gap-1.5">
                                   <span className={`text-[11px] font-extrabold ${isAdmin ? 'text-[#4A3AFF]' : 'text-[#0F172A]'}`}>
-                                    {isAdmin ? 'Cashly Support Team' : 'You'}
+                                    {isAdmin ? 'The Cashly Support Team' : 'You'}
                                   </span>
                                   {isAdmin && (
                                     <span className="text-[9px] font-black uppercase tracking-wider bg-[#4A3AFF] text-white px-1.5 py-0.2 rounded">

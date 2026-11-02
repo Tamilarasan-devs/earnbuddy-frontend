@@ -961,7 +961,7 @@ const Aviator = () => {
             </div>
 
             <div className="pt-4 border-t border-white/5 text-center text-xs text-gray-500">
-              Cashly Aviator Engine v2.0
+              The Cashly Aviator Engine v2.0
             </div>
           </div>
         </div>

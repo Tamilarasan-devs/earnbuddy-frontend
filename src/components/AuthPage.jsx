@@ -21,6 +21,7 @@ export default function AuthPage() {
   const [activeTab, setActiveTab] = useState("login");
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
+  const [showReferralInput, setShowReferralInput] = useState(false);
   const navigate = useNavigate();
 
   const [loginData, setLoginData] = useState({ identifier: "", password: "" });
@@ -37,6 +38,7 @@ export default function AuthPage() {
     const ref = params.get('ref') || params.get('referral');
     if (ref) {
       setSignupData(prev => ({ ...prev, referralCode: ref.toUpperCase() }));
+      setShowReferralInput(true);
       setActiveTab('signup');
     }
   }, []);
@@ -67,7 +69,7 @@ export default function AuthPage() {
     try {
       const emailVal = signupData.mobileNumber.includes('@')
         ? signupData.mobileNumber
-        : `${signupData.username.toLowerCase().replace(/[^a-z0-9]/g, '') || 'user'}@cashly.com`;
+        : `${signupData.username.toLowerCase().replace(/[^a-z0-9]/g, '') || 'user'}@thecashly.com`;
       const response = await api.post('/auth/register', {
         name: signupData.username,
         email: emailVal,
@@ -409,7 +411,7 @@ export default function AuthPage() {
               value="signup"
               className="mt-0 outline-none animate-in fade-in slide-in-from-bottom-2 duration-300"
             >
-              <div className="bg-white rounded-3xl border border-slate-100 p-7 sm:p-8 shadow-[0_8px_30px_rgb(0,0,0,0.04)] h-[500px]">
+              <div className="bg-white rounded-3xl border border-slate-100 p-7 sm:p-8 shadow-[0_8px_30px_rgb(0,0,0,0.04)] min-h-[500px]">
                 <form onSubmit={handleSignupSubmit} className="space-y-4">
                   <div className="space-y-1.5">
                     <Label
@@ -504,26 +506,52 @@ export default function AuthPage() {
                     </div>
                   </div>
 
-                  <div className="space-y-1.5">
-                    <Label
-                      htmlFor="referral"
-                      className="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1"
-                    >
-                      Referral code <span className="lowercase normal-case font-medium text-slate-300">(optional)</span>
-                    </Label>
-                    <div className="relative group">
-                      <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                        <Ticket className="h-5 w-5 text-slate-400 group-focus-within:text-red-500 group-hover:text-red-400 transition-colors" />
-                      </div>
-                      <Input
-                        id="referral"
-                        placeholder="Enter referral code"
-                        className="pl-12 h-[52px] bg-slate-50/50 hover:bg-slate-50 border-slate-200 hover:border-slate-300 text-slate-900 placeholder:text-slate-400 focus-visible:ring-[4px] focus-visible:ring-red-500/15 focus-visible:border-red-500 focus-visible:bg-white rounded-2xl transition-all duration-300 font-medium shadow-[0_2px_10px_rgba(0,0,0,0.02)]"
-                        value={signupData.referralCode}
-                        onChange={(e) => setSignupData({...signupData, referralCode: e.target.value})}
-                      />
+                  {!showReferralInput ? (
+                    <div className="pt-1">
+                      <button
+                        type="button"
+                        onClick={() => setShowReferralInput(true)}
+                        className="text-xs font-semibold text-red-500 hover:text-red-600 transition-colors flex items-center gap-1.5"
+                      >
+                        <Ticket className="h-3.5 w-3.5" />
+                        Have a referral code?
+                      </button>
                     </div>
-                  </div>
+                  ) : (
+                    <div className="space-y-1.5 animate-in fade-in slide-in-from-top-1 duration-200">
+                      <div className="flex items-center justify-between ml-1">
+                        <Label
+                          htmlFor="referral"
+                          className="text-[11px] font-bold text-slate-400 uppercase tracking-wider"
+                        >
+                          Referral code <span className="lowercase normal-case font-medium text-slate-300">(optional)</span>
+                        </Label>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowReferralInput(false);
+                            setSignupData(prev => ({ ...prev, referralCode: "" }));
+                          }}
+                          className="text-[11px] text-slate-400 hover:text-slate-600"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                      <div className="relative group">
+                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                          <Ticket className="h-5 w-5 text-slate-400 group-focus-within:text-red-500 group-hover:text-red-400 transition-colors" />
+                        </div>
+                        <Input
+                          id="referral"
+                          placeholder="Enter referral code"
+                          className="pl-12 h-[52px] bg-slate-50/50 hover:bg-slate-50 border-slate-200 hover:border-slate-300 text-slate-900 placeholder:text-slate-400 focus-visible:ring-[4px] focus-visible:ring-red-500/15 focus-visible:border-red-500 focus-visible:bg-white rounded-2xl transition-all duration-300 font-medium shadow-[0_2px_10px_rgba(0,0,0,0.02)] uppercase tracking-wider"
+                          value={signupData.referralCode}
+                          onChange={(e) => setSignupData({...signupData, referralCode: e.target.value.toUpperCase()})}
+                          autoFocus
+                        />
+                      </div>
+                    </div>
+                  )}
 
                   <Button
                     type="submit"

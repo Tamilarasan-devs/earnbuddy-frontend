@@ -10,6 +10,7 @@ const Register = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [referralCode, setReferralCode] = useState(searchParams.get('ref') || searchParams.get('referral') || '');
+  const [showReferralInput, setShowReferralInput] = useState(Boolean(searchParams.get('ref') || searchParams.get('referral')));
   const [refInfo, setRefInfo] = useState({ valid: null, checking: false, referrerName: '' });
   const [error, setError] = useState('');
   const [fieldError, setFieldError] = useState(''); // 'name' | 'email' | 'password' | 'referralCode' | 'general' | ''
@@ -141,7 +142,7 @@ const Register = () => {
         {/* Form Container (No Card) */}
         <div className="p-8">
           <div className="text-center mb-8">
-            <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight mb-2">Join Cashly</h1>
+            <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight mb-2">Join The Cashly</h1>
             <p className="text-gray-700 text-sm font-medium">Create an account to start earning</p>
           </div>
           
@@ -270,75 +271,106 @@ const Register = () => {
               )}
             </div>
 
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between ml-1">
-                <label className="block text-xs font-bold text-gray-800 uppercase tracking-wider">
-                  Referral Code <span className="lowercase font-medium text-gray-400">(optional)</span>
-                </label>
-                <span className="text-[11px] font-bold text-emerald-600 flex items-center gap-1">
-                  <Gift size={12} /> Get ₹100 Bonus
-                </span>
+            {/* Referral Code (Collapsible) */}
+            {!showReferralInput ? (
+              <div className="pt-0.5 ml-1">
+                <button
+                  type="button"
+                  onClick={() => setShowReferralInput(true)}
+                  className="text-xs font-semibold text-[#4A3AFF] hover:text-[#3826dd] transition-colors flex items-center gap-1.5"
+                >
+                  <Ticket size={14} />
+                  Have a referral code?
+                  <span className="text-[11px] font-bold text-emerald-600 flex items-center gap-0.5 ml-1">
+                    <Gift size={11} /> +₹100 bonus
+                  </span>
+                </button>
               </div>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-4 flex items-center justify-center pointer-events-none">
-                  <Ticket size={18} className={
-                    fieldError === 'referralCode' 
-                      ? 'text-red-500' 
-                      : refInfo.valid 
-                        ? 'text-emerald-500' 
-                        : 'text-gray-500'
-                  } />
+            ) : (
+              <div className="space-y-1.5 animate-in fade-in slide-in-from-top-1 duration-200">
+                <div className="flex items-center justify-between ml-1">
+                  <label className="block text-xs font-bold text-gray-800 uppercase tracking-wider">
+                    Referral Code <span className="lowercase font-medium text-gray-400">(optional)</span>
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] font-bold text-emerald-600 flex items-center gap-1">
+                      <Gift size={12} /> Get ₹100 Bonus
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowReferralInput(false);
+                        setReferralCode('');
+                        setRefInfo({ valid: null, checking: false, referrerName: '' });
+                      }}
+                      className="text-[11px] font-medium text-gray-400 hover:text-gray-600 ml-1"
+                    >
+                      Cancel
+                    </button>
+                  </div>
                 </div>
-                <input 
-                  type="text" 
-                  placeholder="e.g. CASH9F2A"
-                  maxLength={15}
-                  className={`w-full uppercase bg-white/60 border ${
-                    fieldError === 'referralCode' || refInfo.valid === false
-                      ? 'border-red-400 bg-red-50/40 ring-2 ring-red-100 focus:border-red-500 focus:ring-red-200' 
-                      : refInfo.valid
-                        ? 'border-emerald-400 bg-emerald-50/30 ring-2 ring-emerald-100 focus:border-emerald-500 focus:ring-emerald-200'
-                        : 'border-gray-300 focus:border-[#4A3AFF]'
-                  } text-gray-900 placeholder-gray-400 rounded-2xl py-3.5 pl-11 pr-10 focus:outline-none focus:bg-white transition-all font-semibold tracking-wider backdrop-blur-sm shadow-sm`}
-                  value={referralCode}
-                  onChange={(e) => {
-                    setReferralCode(e.target.value.toUpperCase());
-                    if (fieldError === 'referralCode') {
-                      setFieldError('');
-                      setError('');
-                    }
-                  }}
-                  autoComplete="off"
-                />
-                {refInfo.checking && (
-                  <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none">
-                    <Loader2 size={16} className="animate-spin text-gray-400" />
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center justify-center pointer-events-none">
+                    <Ticket size={18} className={
+                      fieldError === 'referralCode' 
+                        ? 'text-red-500' 
+                        : refInfo.valid 
+                          ? 'text-emerald-500' 
+                          : 'text-gray-500'
+                    } />
                   </div>
+                  <input 
+                    type="text" 
+                    placeholder="e.g. CASH9F2A"
+                    maxLength={15}
+                    className={`w-full uppercase bg-white/60 border ${
+                      fieldError === 'referralCode' || refInfo.valid === false
+                        ? 'border-red-400 bg-red-50/40 ring-2 ring-red-100 focus:border-red-500 focus:ring-red-200' 
+                        : refInfo.valid
+                          ? 'border-emerald-400 bg-emerald-50/30 ring-2 ring-emerald-100 focus:border-emerald-500 focus:ring-emerald-200'
+                          : 'border-gray-300 focus:border-[#4A3AFF]'
+                    } text-gray-900 placeholder-gray-400 rounded-2xl py-3.5 pl-11 pr-10 focus:outline-none focus:bg-white transition-all font-semibold tracking-wider backdrop-blur-sm shadow-sm`}
+                    value={referralCode}
+                    onChange={(e) => {
+                      setReferralCode(e.target.value.toUpperCase());
+                      if (fieldError === 'referralCode') {
+                        setFieldError('');
+                        setError('');
+                      }
+                    }}
+                    autoComplete="off"
+                    autoFocus
+                  />
+                  {refInfo.checking && (
+                    <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none">
+                      <Loader2 size={16} className="animate-spin text-gray-400" />
+                    </div>
+                  )}
+                  {refInfo.valid && !refInfo.checking && (
+                    <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none text-emerald-500">
+                      <CheckCircle2 size={18} />
+                    </div>
+                  )}
+                </div>
+
+                {refInfo.valid && (
+                  <p className="text-xs font-semibold text-emerald-700 flex items-center gap-1.5 mt-1 ml-1 bg-emerald-50/80 px-2.5 py-1 rounded-xl border border-emerald-200">
+                    <CheckCircle2 size={13} className="text-emerald-600" />
+                    Code applied! Referred by <span className="font-extrabold">{refInfo.referrerName}</span>
+                  </p>
                 )}
-                {refInfo.valid && !refInfo.checking && (
-                  <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none text-emerald-500">
-                    <CheckCircle2 size={18} />
-                  </div>
+                {refInfo.valid === false && !refInfo.checking && referralCode.trim() && (
+                  <p className="text-xs font-semibold text-red-600 flex items-center gap-1 mt-1 ml-1">
+                    <AlertCircle size={13} /> Invalid referral code. Please check or leave blank.
+                  </p>
+                )}
+                {fieldError === 'referralCode' && (
+                  <p className="text-xs font-semibold text-red-600 flex items-center gap-1 mt-1 ml-1">
+                    <AlertCircle size={13} /> {error}
+                  </p>
                 )}
               </div>
-
-              {refInfo.valid && (
-                <p className="text-xs font-semibold text-emerald-700 flex items-center gap-1.5 mt-1 ml-1 bg-emerald-50/80 px-2.5 py-1 rounded-xl border border-emerald-200">
-                  <CheckCircle2 size={13} className="text-emerald-600" />
-                  Code applied! Referred by <span className="font-extrabold">{refInfo.referrerName}</span>
-                </p>
-              )}
-              {refInfo.valid === false && !refInfo.checking && referralCode.trim() && (
-                <p className="text-xs font-semibold text-red-600 flex items-center gap-1 mt-1 ml-1">
-                  <AlertCircle size={13} /> Invalid referral code. Please check or leave blank.
-                </p>
-              )}
-              {fieldError === 'referralCode' && (
-                <p className="text-xs font-semibold text-red-600 flex items-center gap-1 mt-1 ml-1">
-                  <AlertCircle size={13} /> {error}
-                </p>
-              )}
-            </div>
+            )}
 
             <button 
               type="submit" 

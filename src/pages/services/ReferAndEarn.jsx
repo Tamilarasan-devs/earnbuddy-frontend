@@ -53,7 +53,7 @@ export default function ReferAndEarn() {
     fetchReferralStats();
   }, []);
 
-  const referralCode = referralData.referralCode || user?.referralCode || 'CASHLY';
+  const referralCode = referralData.referralCode || user?.referralCode || 'THECASHLY';
   const siteUrl = window.location.origin;
   const referralLink = `${siteUrl}/register?ref=${referralCode}`;
 
@@ -77,7 +77,7 @@ export default function ReferAndEarn() {
     }
   };
 
-  const shareMessage = `🎮 Hey! Join Cashly to play games, invest in smart daily return assets, and cash out real money!\n\nUse my referral code *${referralCode}* to get an instant ₹100 welcome bonus!\n\nRegister here: ${referralLink}`;
+  const shareMessage = `🎮 Hey! Join The Cashly to play games, invest in smart daily return assets, and cash out real money!\n\nUse my referral code *${referralCode}* to get an instant ₹100 welcome bonus!\n\nRegister here: ${referralLink}`;
 
   const handleWhatsAppShare = () => {
     const url = `https://api.whatsapp.com/send?text=${encodeURIComponent(shareMessage)}`;
@@ -88,7 +88,7 @@ export default function ReferAndEarn() {
     if (navigator.share) {
       try {
         await navigator.share({
-          title: 'Join Cashly & Earn Real Cash',
+          title: 'Join The Cashly & Earn Real Cash',
           text: shareMessage,
           url: referralLink,
         });
@@ -131,7 +131,7 @@ export default function ReferAndEarn() {
             </span>
             <h2 className="text-2xl sm:text-3xl font-black text-white leading-tight">
               Earn ₹100 for every friend <br />
-              <span className="text-amber-300">who joins Cashly!</span>
+              <span className="text-amber-300">who joins The Cashly!</span>
             </h2>
             <p className="text-blue-100 text-xs sm:text-sm font-medium max-w-sm">
               Your friend gets a ₹100 welcome bonus, and you receive ₹100 directly in your wallet balance.
@@ -266,7 +266,7 @@ export default function ReferAndEarn() {
             <div>
               <h4 className="text-sm font-extrabold text-[#0F172A]">Friend Signs Up & Deposits</h4>
               <p className="text-xs text-gray-500 font-medium mt-0.5">
-                They register on Cashly using your referral code and make their first wallet deposit.
+                They register on The Cashly using your referral code and make their first wallet deposit.
               </p>
             </div>
           </div>

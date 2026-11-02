@@ -17,7 +17,7 @@ const CustomerLayout = () => {
               <div className="w-8 h-8 bg-[#4A3AFF] rounded-[10px] flex items-center justify-center shadow-md">
                 <Wallet size={18} className="text-white" fill="currentColor" />
               </div>
-              <h1 className="text-xl font-extrabold text-[#0F172A] tracking-tight">Cashly</h1>
+              <h1 className="text-xl font-extrabold text-[#0F172A] tracking-tight">The Cashly</h1>
             </div>
             {/* We can add notifications or profile pic here */}
           </div>

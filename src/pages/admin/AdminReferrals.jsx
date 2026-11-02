@@ -463,7 +463,7 @@ const AdminReferrals = () => {
                     />
                   </div>
                   <p className="text-[11px] text-gray-400 mt-1">
-                    Will be credited directly to {actionModal.type === 'referrer' ? actionModal.item?.referrer?.name : actionModal.item?.referredUser?.name}'s Cashly Wallet with a ledger credit entry.
+                    Will be credited directly to {actionModal.type === 'referrer' ? actionModal.item?.referrer?.name : actionModal.item?.referredUser?.name}'s The Cashly Wallet with a ledger credit entry.
                   </p>
                 </div>
               ) : null}
