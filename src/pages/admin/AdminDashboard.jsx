@@ -1,13 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import api from '../../lib/axios';
-import { Users, Banknote, ShieldAlert, Zap } from 'lucide-react';
+import { Users, Banknote, ShieldAlert, Zap, Gift } from 'lucide-react';
 
 const AdminDashboard = () => {
   const [stats, setStats] = useState({
     totalUsers: 0,
     activePlans: 0,
-    pendingWithdrawals: 0
+    pendingWithdrawals: 0,
+    pendingReferrals: 0,
+    totalDeposits: 0
   });
   const [triggering, setTriggering] = useState(false);
 
@@ -45,7 +47,7 @@ const AdminDashboard = () => {
         <p className="text-gray-500 mt-1 font-medium">Here's what's happening with Cashly today.</p>
       </div>
       
-      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-5">
         <div className="relative overflow-hidden rounded-[24px] bg-white p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100 group hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] transition-all">
           <div className="absolute top-0 right-0 w-32 h-32 bg-blue-50 rounded-full blur-3xl -mr-10 -mt-10 transition-transform group-hover:scale-150"></div>
           <div className="relative z-10 flex items-start justify-between">
@@ -94,6 +96,19 @@ const AdminDashboard = () => {
             </div>
             <div className="w-12 h-12 rounded-2xl bg-amber-50 flex items-center justify-center text-amber-500 shadow-sm shrink-0">
               <ShieldAlert size={24} />
+            </div>
+          </div>
+        </div>
+
+        <div className="relative overflow-hidden rounded-[24px] bg-white p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100 group hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] transition-all">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-purple-50 rounded-full blur-3xl -mr-10 -mt-10 transition-transform group-hover:scale-150"></div>
+          <div className="relative z-10 flex items-start justify-between">
+            <div>
+              <p className="text-[13px] font-bold text-gray-400 uppercase tracking-wider mb-2">Referral Deposits</p>
+              <p className="text-3xl font-extrabold text-[#0F172A] tracking-tight">{stats.pendingReferrals || 0}</p>
+            </div>
+            <div className="w-12 h-12 rounded-2xl bg-purple-50 flex items-center justify-center text-purple-600 shadow-sm shrink-0">
+              <Gift size={24} />
             </div>
           </div>
         </div>

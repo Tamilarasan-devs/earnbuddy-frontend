@@ -172,8 +172,8 @@ const AddCash = () => {
 
   /**
    * Generates UPI URL with exact amount formatted to 2 decimals.
-   * Tailored for Android Intent, iOS schemes, and universal UPI apps.
-   * Keeps raw literal '@' in pa so UPI apps (PhonePe, Paytm) parse the VPA correctly.
+   * Includes unique transaction reference (tr) on every call so apps don't flag repeat clicks.
+   * Generates clean universal upi:// and intent:// schemes with proper fallbacks.
    */
   const getUpiUrl = (appScheme = '', customAmt = null) => {
     const rawUpiId = (currentChannel?.upiId || paymentSetting?.upiId || 'cashly@upi').trim();
@@ -182,28 +182,32 @@ const AddCash = () => {
     const num = parseFloat(amtToUse);
     const amountParam = !isNaN(num) && num > 0 ? `&am=${num.toFixed(2)}` : '';
     const note = 'The Cashly Deposit';
+    // Dynamic fresh transaction reference to prevent "duplicate replay" and "technical glitch" blocks
+    const txnRef = `CSH${Date.now()}`;
 
-    // IMPORTANT: Keep literal '@' in pa for PhonePe and Paytm to directly detect our given UPI ID
-    const baseParams = `pa=${rawUpiId}&pn=${encodeURIComponent(upiName)}${amountParam}&cu=INR&tn=${encodeURIComponent(note)}`;
+    // Base parameters formatted strictly per NPCI standards
+    const baseParams = `pa=${rawUpiId}&pn=${encodeURIComponent(upiName)}${amountParam}&cu=INR&tn=${encodeURIComponent(note)}&tr=${txnRef}`;
 
     const ua = typeof navigator !== 'undefined' ? (navigator.userAgent || '') : '';
     const isAndroid = /android/i.test(ua);
+    const isIOS = /iphone|ipad|ipod/i.test(ua);
 
     if (appScheme === 'phonepe') {
       if (isAndroid) {
-        // Android Intent directly targeting PhonePe app package with our given UPI ID
+        // Direct intent package launch for Android PhonePe
         return `intent://pay?${baseParams}#Intent;scheme=upi;package=com.phonepe.app;end`;
       }
-      // iOS / Universal PhonePe custom scheme
       return `phonepe://pay?${baseParams}`;
     }
 
     if (appScheme === 'paytm') {
       if (isAndroid) {
-        // Android Intent directly targeting Paytm app package with our given UPI ID
+        // Standard Android intent for Paytm
         return `intent://pay?${baseParams}#Intent;scheme=upi;package=net.one97.paytm;end`;
       }
-      // iOS / Universal Paytm scheme (paytmmp://)
+      if (isIOS) {
+        return `paytmmp://pay?${baseParams}`;
+      }
       return `paytmmp://pay?${baseParams}`;
     }
 
@@ -219,8 +223,8 @@ const AddCash = () => {
   };
 
   /**
-   * Triggers PhonePe or Paytm redirection with our given UPI ID.
-   * If amount is not entered, defaults to ₹500 so user is immediately directed without error.
+   * Triggers PhonePe, Paytm, or universal UPI app redirection.
+   * Auto-refreshes tr and handles smooth fallback to universal upi://pay if intent encounters issues.
    */
   const handleAppPay = (appScheme) => {
     let amtToUse = amount;
@@ -254,14 +258,16 @@ const AddCash = () => {
     const appName = appScheme === 'phonepe' ? 'PhonePe' : appScheme === 'paytm' ? 'Paytm' : 'UPI App';
     const targetUrl = getUpiUrl(appScheme, amtToUse);
     const genericUrl = getUpiUrl('generic', amtToUse);
+    
+    // Direct app-specific custom schemes
     const directSchemeUrl = appScheme === 'phonepe' 
-      ? `phonepe://pay?pa=${rawUpiId}&pn=${encodeURIComponent(upiName)}&am=${numAmount.toFixed(2)}&cu=INR`
+      ? `phonepe://pay?pa=${rawUpiId}&pn=${encodeURIComponent(upiName)}&am=${numAmount.toFixed(2)}&cu=INR&tn=${encodeURIComponent('The Cashly Deposit')}&tr=CSH${Date.now()}`
       : appScheme === 'paytm'
-        ? `paytmmp://pay?pa=${rawUpiId}&pn=${encodeURIComponent(upiName)}&am=${numAmount.toFixed(2)}&cu=INR`
+        ? `paytmmp://pay?pa=${rawUpiId}&pn=${encodeURIComponent(upiName)}&am=${numAmount.toFixed(2)}&cu=INR&tn=${encodeURIComponent('The Cashly Deposit')}&tr=CSH${Date.now()}`
         : genericUrl;
 
     setStatusMsg({
-      text: `Opening ${appName} to pay ₹${numAmount.toLocaleString()} to ${rawUpiId}...`,
+      text: `Opening ${appName} to pay ₹${numAmount.toLocaleString()}...`,
       type: 'info',
       appName,
       amountPaid: numAmount,
@@ -271,7 +277,7 @@ const AddCash = () => {
       genericUrl
     });
 
-    // Directly trigger redirection with our given UPI ID
+    // Directly trigger redirection with clean fallback
     try {
       window.location.href = targetUrl;
     } catch {

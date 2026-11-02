@@ -264,9 +264,9 @@ export default function ReferAndEarn() {
               2
             </div>
             <div>
-              <h4 className="text-sm font-extrabold text-[#0F172A]">Friend Signs Up</h4>
+              <h4 className="text-sm font-extrabold text-[#0F172A]">Friend Signs Up & Deposits</h4>
               <p className="text-xs text-gray-500 font-medium mt-0.5">
-                They register on Cashly using your referral code and receive an instant ₹100 welcome reward.
+                They register on Cashly using your referral code and make their first wallet deposit.
               </p>
             </div>
           </div>
@@ -276,9 +276,9 @@ export default function ReferAndEarn() {
               3
             </div>
             <div>
-              <h4 className="text-sm font-extrabold text-[#0F172A]">Get Instant ₹100 Cash</h4>
+              <h4 className="text-sm font-extrabold text-[#0F172A]">Admin Reviews & Sends Bonus</h4>
               <p className="text-xs text-gray-500 font-medium mt-0.5">
-                You receive ₹100 cash in your wallet balance immediately for each qualified registration!
+                Our admin team reviews the deposit and credits custom referral cash directly to your wallet, and rewards your friend too!
               </p>
             </div>
           </div>
@@ -328,12 +328,34 @@ export default function ReferAndEarn() {
                   </div>
                 </div>
                 <div className="text-right">
-                  <span className="text-xs sm:text-sm font-black text-emerald-600 block">
-                    +₹{(refItem.rewardAmount / 100).toFixed(2)}
-                  </span>
-                  <span className="text-[10px] font-bold text-gray-400 uppercase">
-                    Reward Paid
-                  </span>
+                  {refItem.isRewardPaid ? (
+                    <>
+                      <span className="text-xs sm:text-sm font-black text-emerald-600 block">
+                        +₹{(refItem.rewardAmount / 100).toFixed(2)}
+                      </span>
+                      <span className="text-[10px] font-bold text-emerald-600 uppercase">
+                        Bonus Credited
+                      </span>
+                    </>
+                  ) : refItem.hasDeposited ? (
+                    <>
+                      <span className="text-xs sm:text-sm font-black text-amber-600 block">
+                        Deposit Made
+                      </span>
+                      <span className="text-[10px] font-bold text-amber-500 uppercase">
+                        Pending Admin Review
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="text-xs sm:text-sm font-bold text-gray-400 block">
+                        Signed Up
+                      </span>
+                      <span className="text-[10px] font-bold text-gray-400 uppercase">
+                        Awaiting Deposit
+                      </span>
+                    </>
+                  )}
                 </div>
               </div>
             ))}

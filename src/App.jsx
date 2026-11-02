@@ -34,6 +34,8 @@ const AdminTickets = lazy(() => import('./pages/admin/AdminTickets'));
 const AdminUsers = lazy(() => import('./pages/admin/AdminUsers'));
 const AdminTopUps = lazy(() => import('./pages/admin/AdminTopUps'));
 const AdminPaymentSettings = lazy(() => import('./pages/admin/AdminPaymentSettings'));
+const AdminManualWithdrawal = lazy(() => import('./pages/admin/AdminManualWithdrawal'));
+const AdminReferrals = lazy(() => import('./pages/admin/AdminReferrals'));
 
 const PageFallback = () => (
   <div className="flex min-h-[50vh] items-center justify-center">
@@ -95,8 +97,10 @@ function App() {
             <Route index element={<AdminDashboard />} />
             <Route path="plans" element={<AdminPlans />} />
             <Route path="topups" element={<AdminTopUps />} />
+            <Route path="referrals" element={<AdminReferrals />} />
             <Route path="payment-settings" element={<AdminPaymentSettings />} />
             <Route path="withdrawals" element={<AdminWithdrawals />} />
+            <Route path="manual-withdrawal" element={<AdminManualWithdrawal />} />
             <Route path="users" element={<AdminUsers />} />
             <Route path="tickets" element={<AdminTickets />} />
           </Route>
