@@ -1,13 +1,20 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useModal } from '../context/ModalContext';
 import { Link, useNavigate } from 'react-router-dom';
 import { Bell, User, Eye, Wallet, Package, Calendar, ArrowRight, Star, Rocket, Gift, Sparkles, Clock, RefreshCw } from 'lucide-react';
 import api from '../lib/axios';
 import ProductCard from '../components/ProductCard';
 import AnnouncementModal from '../components/AnnouncementModal';
+import { useReferralSetting } from '../context/ReferralSettingContext';
+import { useNotifications } from '../context/NotificationContext';
+import NotificationModal from '../components/NotificationModal';
 
 const Home = () => {
   const { user, fetchUser } = useAuth();
+  const { showAlert, showConfirm } = useModal();
+  const { referrerBonusRupees } = useReferralSetting();
+  const { unreadCount } = useNotifications();
   const navigate = useNavigate();
   const [activeSub, setActiveSub] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -15,6 +22,7 @@ const Home = () => {
   const [purchasing, setPurchasing] = useState(null);
   const [collecting, setCollecting] = useState(false);
   const [showBonusModal, setShowBonusModal] = useState(false);
+  const [showNotifModal, setShowNotifModal] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState('normal'); // 'normal' | 'special' | 'coming_soon'
 
   const fetchData = async () => {
@@ -40,7 +48,7 @@ const Home = () => {
     fetchData();
 
     // Auto-show bonus promo modal on visit if not dismissed yet
-    const dismissed = sessionStorage.getItem('cashly_bonus_dismissed');
+    const dismissed = sessionStorage.getItem('earnbuddy_bonus_dismissed');
     if (!dismissed) {
       const timer = setTimeout(() => {
         setShowBonusModal(true);
@@ -51,28 +59,32 @@ const Home = () => {
 
   const handleCloseModal = () => {
     setShowBonusModal(false);
-    sessionStorage.setItem('cashly_bonus_dismissed', 'true');
+    sessionStorage.setItem('earnbuddy_bonus_dismissed', 'true');
   };
 
   const handlePurchase = async (plan) => {
     if (plan.status === 'hidden' || plan.status === 'draft') {
-      alert('This plan is currently hidden and locked.');
+      await showAlert('This plan is currently hidden and locked.', 'warning');
       return;
     }
 
     if (plan.isComingSoon || plan.planType === 'coming_soon') {
-      alert('This plan is coming soon and cannot be purchased yet.');
+      await showAlert('This plan is coming soon and cannot be purchased yet.', 'info');
       return;
     }
 
     // Client side check
     if (user.walletBalance < plan.initialPayment) {
-      alert(`Insufficient wallet balance. You need ₹${((plan.initialPayment - user.walletBalance) / 100).toFixed(2)} more to buy ${plan.name}.`);
+      await showAlert(`Insufficient wallet balance. You need ₹${((plan.initialPayment - user.walletBalance) / 100).toFixed(2)} more to buy ${plan.name}.`, 'warning');
       navigate('/add-cash');
       return;
     }
 
-    if (!window.confirm(`Are you sure you want to purchase the ${plan.name} plan for ₹${(plan.initialPayment / 100).toFixed(2)}?`)) {
+    const confirmed = await showConfirm(
+      `Are you sure you want to purchase the ${plan.name} plan for ₹${(plan.initialPayment / 100).toFixed(2)}?`,
+      { title: 'Confirm Investment', confirmText: 'Buy Plan' }
+    );
+    if (!confirmed) {
       return;
     }
 
@@ -80,12 +92,12 @@ const Home = () => {
     try {
       const res = await api.post('/payments/purchase', { planId: plan._id });
       if (res.data.success) {
-        alert('Product purchased successfully!');
+        await showAlert('Product purchased successfully!', 'success');
         await fetchUser();
         await fetchData();
       }
     } catch (err) {
-      alert(err.response?.data?.error || 'Failed to purchase product');
+      await showAlert(err.response?.data?.error || 'Failed to purchase product', 'error');
     } finally {
       setPurchasing(null);
     }
@@ -98,16 +110,16 @@ const Home = () => {
       const res = await api.post(`/payments/subscriptions/${id}/collect`);
       if (res.data.success) {
         if (res.data.amount > 0) {
-          alert(`Successfully collected ₹${(res.data.amount / 100).toFixed(2)} to your wallet!`);
+          await showAlert(`Successfully collected ₹${(res.data.amount / 100).toFixed(2)} to your wallet!`, 'success');
         } else {
-          alert(res.data.message || 'No pending returns to collect right now.');
+          await showAlert(res.data.message || 'No pending returns to collect right now.', 'info');
         }
         // Refresh everything to reflect the new balance and updated plan numbers
         await fetchUser();
         await fetchData();
       }
     } catch (error) {
-      alert(error.response?.data?.error || error.response?.data?.message || 'Failed to collect earnings');
+      await showAlert(error.response?.data?.error || error.response?.data?.message || 'Failed to collect earnings', 'error');
     } finally {
       setCollecting(false);
     }
@@ -115,120 +127,133 @@ const Home = () => {
 
 
   return (
-    <div className="relative min-h-screen bg-[#F8FAFC] pb-36 font-sans overflow-x-hidden">
+    <div className="relative min-h-screen bg-[#FFFBF9] pb-36 font-sans overflow-x-hidden">
       
-      {/* Top Header Background Illustration area */}
-      <div className="absolute top-0 left-0 right-0 h-64 z-0 rounded-b-[40px] overflow-hidden bg-gradient-to-br from-[#FFFDF0] via-[#E8F8ED] to-[#DDF1FA]">
-        {/* Abstract shapes to mimic the illustration's colors and depth */}
-        <div className="absolute -top-10 -right-10 w-64 h-64 bg-green-200/40 rounded-full blur-3xl"></div>
-        <div className="absolute top-20 -left-10 w-48 h-48 bg-yellow-200/40 rounded-full blur-3xl"></div>
-        <div className="absolute top-10 right-10 w-32 h-32 bg-blue-200/40 rounded-full blur-2xl"></div>
+      {/* Top Header Background Illustration area - Warm Flame & Coral Glow */}
+      <div className="absolute top-0 left-0 right-0 h-72 z-0 rounded-b-[44px] overflow-hidden bg-gradient-to-br from-[#FFF7ED] via-[#FFEDD5] to-[#FEE2E2]">
+        {/* Soft Modern Glow Spheres */}
+        <div className="absolute -top-12 -right-10 w-72 h-72 bg-orange-300/30 rounded-full blur-3xl"></div>
+        <div className="absolute top-16 -left-12 w-60 h-60 bg-red-300/25 rounded-full blur-3xl"></div>
+        <div className="absolute top-24 right-16 w-40 h-40 bg-amber-200/35 rounded-full blur-2xl"></div>
       </div>
       
-      <div className="relative z-10 px-5 pt-6 space-y-7">
+      <div className="relative z-10 px-5 pt-6 space-y-6">
         
         {/* Top Header */}
         <header className="flex items-center justify-between">
-          <div className="flex items-center gap-2 bg-white/50 backdrop-blur-sm pr-4 pl-1.5 py-1.5 rounded-full shadow-sm border border-white/60">
-            <div className="w-8 h-8 bg-[#4A3AFF] rounded-[10px] flex items-center justify-center shadow-md">
-              <Wallet size={18} className="text-white" fill="currentColor" />
+          <div className="flex items-center gap-2.5 bg-white/85 backdrop-blur-md pr-4 pl-1.5 py-1.5 rounded-full shadow-[0_2px_12px_rgba(234,88,12,0.06)] border border-orange-200/60">
+            <div className="w-8 h-8 bg-gradient-to-tr from-[#EA580C] via-[#F97316] to-[#EF4444] rounded-[11px] flex items-center justify-center shadow-md shadow-orange-500/25">
+              <Wallet size={17} className="text-white" fill="currentColor" />
             </div>
-            <h1 className="text-xl font-extrabold text-[#0F172A] tracking-tight">The Cashly</h1>
+            <h1 className="text-lg font-black text-[#18181B] tracking-tight">Earn<span className="text-transparent bg-clip-text bg-gradient-to-r from-[#EA580C] to-[#EF4444]">Buddy</span></h1>
           </div>
-          <div className="flex items-center space-x-3">
-            <button className="relative w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-[0_2px_15px_rgb(0,0,0,0.06)] border border-gray-100 text-gray-700">
-              <Bell size={20} />
-              <span className="absolute top-2 right-2.5 flex h-2.5 w-2.5 rounded-full bg-red-500 border-2 border-white"></span>
+          <div className="flex items-center space-x-2.5">
+            <button 
+              type="button"
+              onClick={() => setShowNotifModal(true)}
+              className="relative w-10 h-10 rounded-2xl bg-white hover:bg-orange-50/50 flex items-center justify-center shadow-[0_4px_16px_rgba(234,88,12,0.06)] border border-orange-200/50 text-zinc-700 transition cursor-pointer"
+            >
+              <Bell size={19} />
+              {unreadCount > 0 && (
+                <span className="absolute top-1 right-1 flex h-4 min-w-[16px] px-1 items-center justify-center rounded-full bg-red-500 text-[9px] font-black text-white border-2 border-white shadow-xs animate-pulse">
+                  {unreadCount > 9 ? '9+' : unreadCount}
+                </span>
+              )}
             </button>
-            <button className="w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-[0_2px_15px_rgb(0,0,0,0.06)] border border-gray-100 text-[#4A3AFF]">
-              <User size={20} fill="currentColor" />
+            <button 
+              type="button"
+              onClick={() => navigate('/profile')}
+              className="w-10 h-10 rounded-2xl bg-white hover:bg-orange-50/50 flex items-center justify-center shadow-[0_4px_16px_rgba(234,88,12,0.06)] border border-orange-200/50 text-[#EA580C] transition cursor-pointer"
+            >
+              <User size={19} fill="currentColor" />
             </button>
           </div>
         </header>
 
         {/* Greeting */}
-        <div className="pt-2 pb-2">
-          <h2 className="text-[22px] font-extrabold text-[#0F172A] flex items-center gap-2 tracking-tight">
-            Hello, {user?.name.split(' ')[0]} <span className="text-2xl">👋</span>
+        <div className="pt-1">
+          <h2 className="text-[23px] font-black text-[#18181B] flex items-center gap-2 tracking-tight">
+            Hello, {user?.name.split(' ')[0]} <span className="text-2xl animate-bounce">👋</span>
           </h2>
-          <p className="text-[13px] text-[#475569] font-semibold mt-1">Welcome back to The Cashly</p>
+          <p className="text-[13px] text-[#71717A] font-bold mt-0.5">Welcome back to your high-yield portfolio</p>
         </div>
 
-        {/* Balance Card */}
-        <div className="relative overflow-hidden rounded-[24px] p-6 shadow-[0_15px_35px_rgba(74,58,255,0.25)] bg-gradient-to-br from-[#533df5] to-[#2563EB]">
-          {/* Wave decor for Balance Card */}
+        {/* Balance Card - Vibrant Sunset Flame Gradient Card (Orange & Crimson Red) */}
+        <div className="relative overflow-hidden rounded-[28px] p-6 shadow-[0_18px_40px_rgba(234,88,12,0.28)] bg-gradient-to-br from-[#C2410C] via-[#EA580C] to-[#DC2626] text-white">
+          {/* Subtle Ambient Curved Overlay */}
           <div className="absolute top-0 right-0 w-full h-full pointer-events-none">
-            <div className="absolute right-[-10%] top-[-30%] w-[80%] h-[150%] bg-gradient-to-b from-white/20 to-transparent rounded-full rotate-[15deg] blur-sm"></div>
-            <div className="absolute bottom-[-50%] left-[-10%] w-[60%] h-[100%] bg-white/10 rounded-full blur-xl"></div>
+            <div className="absolute right-[-15%] top-[-30%] w-[90%] h-[160%] bg-gradient-to-b from-white/20 to-transparent rounded-full rotate-[18deg] blur-xs"></div>
+            <div className="absolute bottom-[-40%] left-[-15%] w-[70%] h-[110%] bg-amber-300/20 rounded-full blur-2xl"></div>
           </div>
           
           <div className="relative z-10 flex flex-col">
             <div className="flex items-center justify-between mb-4">
               <div>
-                <div className="flex items-center gap-1.5 text-white/90 mb-1">
-                  <p className="text-sm font-medium">Wallet Balance</p>
-                  <Eye size={16} className="opacity-80" />
+                <div className="flex items-center gap-1.5 text-orange-100 mb-1">
+                  <p className="text-xs font-bold uppercase tracking-wider">Available Cash</p>
+                  <Eye size={15} className="opacity-80" />
                 </div>
-                <h2 className="text-[32px] font-extrabold text-white leading-tight tracking-tighter shadow-sm">
+                <h2 className="text-[34px] font-black text-white leading-tight tracking-tight drop-shadow-xs">
                   ₹{(user?.walletBalance / 100 || 0).toFixed(2)}
                 </h2>
               </div>
               
               <Link to="/add-cash" className="flex flex-col items-center justify-center group relative z-20">
-                <div className="w-12 h-12 bg-white/90 backdrop-blur-md rounded-full flex items-center justify-center shadow-lg group-hover:bg-white transition-all mb-1">
-                  <Wallet size={20} className="text-[#4A3AFF]" fill="currentColor" />
+                <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center shadow-lg shadow-black/10 group-hover:scale-105 transition-transform mb-1">
+                  <Wallet size={21} className="text-[#EA580C]" fill="currentColor" />
                 </div>
-                <span className="text-white text-[10px] font-bold">Add Cash</span>
+                <span className="text-white text-[11px] font-black tracking-wide">Add Cash</span>
               </Link>
             </div>
 
             <div className="border-t border-white/20 pt-4 flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-white/90 mb-1">Earning Balance</p>
-                <h2 className="text-[24px] font-extrabold text-white leading-tight shadow-sm">
+                <p className="text-xs font-bold uppercase tracking-wider text-orange-100 mb-0.5">Earning Balance</p>
+                <h2 className="text-[23px] font-black text-white leading-tight">
                   ₹{(user?.earningBalance / 100 || 0).toFixed(2)}
                 </h2>
               </div>
               
               <div className="flex items-center gap-2">
-                <div className="inline-flex items-center gap-1.5 bg-white shadow-sm px-2 py-1 rounded-full">
-                  <span className="text-[#10B981] text-[10px] font-bold tracking-wide">+ ₹{((activeSub?.eligibleAmount || 0) / 100).toFixed(2)} today</span>
+                <div className="inline-flex items-center gap-1.5 bg-white/20 backdrop-blur-md border border-white/25 shadow-xs px-2.5 py-1 rounded-full">
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-300 animate-ping" />
+                  <span className="text-white text-[10px] font-black tracking-wide">+ ₹{((activeSub?.eligibleAmount || 0) / 100).toFixed(2)} today</span>
                 </div>
-                <Link to="/wallet" className="flex items-center justify-center bg-white/20 hover:bg-white/30 backdrop-blur-md rounded-xl px-3 py-1.5 transition-all border border-white/30">
-                  <span className="text-white text-[11px] font-bold">Withdraw</span>
+                <Link to="/wallet" className="flex items-center justify-center bg-white hover:bg-orange-50 text-[#EA580C] rounded-xl px-3.5 py-1.5 transition-all shadow-sm active:scale-95">
+                  <span className="text-[11px] font-black tracking-wide">Withdraw</span>
                 </Link>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Quick Actions Grid */}
-        <div className="grid grid-cols-4 gap-2 bg-white p-5 rounded-[24px] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-50">
-          <Link to="/add-cash" className="flex flex-col items-center gap-2 text-center">
-            <div className="w-[52px] h-[52px] rounded-[18px] bg-[#E6F7ED] flex items-center justify-center text-[#10B981]">
-              <Wallet size={26} strokeWidth={2.5} />
+        {/* Quick Actions Grid - Clean Modern Rounded Tiles with Sunset Tint */}
+        <div className="grid grid-cols-4 gap-2.5 bg-white p-5 rounded-[26px] shadow-[0_6px_25px_rgba(234,88,12,0.05)] border border-orange-100/70">
+          <Link to="/add-cash" className="flex flex-col items-center gap-1.5 text-center group">
+            <div className="w-[52px] h-[52px] rounded-[18px] bg-gradient-to-tr from-orange-50 to-amber-50 border border-orange-200/80 flex items-center justify-center text-[#EA580C] shadow-xs group-hover:scale-105 transition-transform">
+              <Wallet size={24} strokeWidth={2.4} />
             </div>
             <div>
-              <p className="text-[11px] font-bold text-[#0F172A]">Add Cash</p>
-              <p className="text-[9px] text-[#64748B] font-medium leading-tight mt-0.5">Fund your wallet</p>
+              <p className="text-[11px] font-extrabold text-[#18181B]">Add Cash</p>
+              <p className="text-[9px] text-[#71717A] font-semibold leading-tight mt-0.5">Instant UPI</p>
             </div>
           </Link>
-          <Link to="/plans" className="flex flex-col items-center gap-2 text-center">
-            <div className="w-[52px] h-[52px] rounded-[18px] bg-[#F4F2FF] flex items-center justify-center text-[#6C5DD3]">
-              <Package size={26} strokeWidth={2.5} />
+          <Link to="/plans" className="flex flex-col items-center gap-1.5 text-center group">
+            <div className="w-[52px] h-[52px] rounded-[18px] bg-gradient-to-tr from-red-50 to-orange-50 border border-red-200/80 flex items-center justify-center text-[#DC2626] shadow-xs group-hover:scale-105 transition-transform">
+              <Package size={24} strokeWidth={2.4} />
             </div>
             <div>
-              <p className="text-[11px] font-bold text-[#0F172A]">Products</p>
-              <p className="text-[9px] text-[#64748B] font-medium leading-tight mt-0.5">Explore & Invest</p>
+              <p className="text-[11px] font-extrabold text-[#18181B]">Products</p>
+              <p className="text-[9px] text-[#71717A] font-semibold leading-tight mt-0.5">Invest & Grow</p>
             </div>
           </Link>
-          <Link to="/services" className="flex flex-col items-center gap-2 text-center">
-            <div className="w-[52px] h-[52px] rounded-[18px] bg-[#FFF1F2] flex items-center justify-center text-[#F43F5E]">
-              <Calendar size={26} strokeWidth={2.5} />
+          <Link to="/services" className="flex flex-col items-center gap-1.5 text-center group">
+            <div className="w-[52px] h-[52px] rounded-[18px] bg-gradient-to-tr from-amber-50 to-yellow-50 border border-amber-200/80 flex items-center justify-center text-[#D97706] shadow-xs group-hover:scale-105 transition-transform">
+              <Calendar size={24} strokeWidth={2.4} />
             </div>
             <div>
-              <p className="text-[11px] font-bold text-[#0F172A]">Services</p>
-              <p className="text-[9px] text-[#64748B] font-medium leading-tight mt-0.5">Get Support</p>
+              <p className="text-[11px] font-extrabold text-[#18181B]">Services</p>
+              <p className="text-[9px] text-[#71717A] font-semibold leading-tight mt-0.5">Support & Help</p>
             </div>
           </Link>
           <Link to="/profile" className="flex flex-col items-center gap-2 text-center">
@@ -253,13 +278,13 @@ const Home = () => {
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="font-extrabold text-sm sm:text-base text-white">Refer & Earn ₹100</span>
+                <span className="font-extrabold text-sm sm:text-base text-white">Refer & Earn ₹{referrerBonusRupees || 100}</span>
                 <span className="px-2 py-0.5 rounded-full bg-amber-400 text-slate-900 text-[10px] font-black uppercase">
                   Cash Bonus
                 </span>
               </div>
               <p className="text-xs text-blue-200 font-medium mt-0.5">
-                Invite friends with your code and get ₹100 instant cash per friend!
+                Invite friends with your code and get ₹{referrerBonusRupees || 100} instant cash per friend!
               </p>
             </div>
           </div>
@@ -366,7 +391,7 @@ const Home = () => {
                   )}
                   <button 
                     onClick={() => navigate('/services/my-products')}
-                    className="w-full sm:flex-1 bg-gradient-to-r from-[#533df5] to-[#2563EB] text-white py-3.5 rounded-2xl text-[13px] font-extrabold flex items-center justify-center gap-2 shadow-[0_8px_20px_rgba(37,99,235,0.25)] hover:opacity-90 transition-all cursor-pointer"
+                    className="w-full sm:flex-1 bg-gradient-to-r from-[#1D4ED8] to-[#2563EB] text-white py-3.5 rounded-2xl text-[13px] font-extrabold flex items-center justify-center gap-2 shadow-[0_8px_20px_rgba(37,99,235,0.22)] hover:opacity-95 transition-all cursor-pointer"
                   >
                     <span>View Details</span>
                     <ArrowRight size={16} strokeWidth={3} />
@@ -377,19 +402,19 @@ const Home = () => {
           </div>
         )}
 
-        {/* Promo Banner */}
-        <div className="rounded-[24px] p-5 flex items-center justify-between shadow-[0_8px_30px_rgb(0,0,0,0.06)] bg-gradient-to-r from-[#FFD3A5] via-[#FD6585] to-[#FFD3A5] mt-6 relative overflow-hidden">
-          <div className="absolute inset-0 bg-white/20 blur-xl"></div>
+        {/* Promo Banner - High-contrast Sunset/Gold Light Gradient */}
+        <div className="rounded-[26px] p-5 flex items-center justify-between shadow-[0_10px_25px_rgba(245,158,11,0.15)] bg-gradient-to-r from-[#FFFBEB] via-[#FEF3C7] to-[#FDE68A] border border-amber-200 mt-6 relative overflow-hidden">
+          <div className="absolute right-0 top-0 w-32 h-32 bg-amber-400/20 rounded-full blur-2xl pointer-events-none"></div>
           <div className="relative z-10 flex-1 pr-4">
-            <h3 className="text-[#0F172A] font-extrabold text-[17px] flex items-center gap-1.5 tracking-tight">
-              Earn Daily, Grow Fast <Rocket size={18} className="text-[#0F172A]" fill="currentColor" />
+            <h3 className="text-[#92400E] font-black text-[17px] flex items-center gap-1.5 tracking-tight">
+              Earn Daily, Grow Fast <Rocket size={18} className="text-[#D97706]" fill="currentColor" />
             </h3>
-            <p className="text-[#0F172A]/80 text-[11px] font-bold leading-relaxed mt-1">
-              Collect your daily returns and watch your balance grow!
+            <p className="text-[#B45309] text-[11px] font-bold leading-relaxed mt-1">
+              Collect guaranteed daily returns and watch your capital grow!
             </p>
           </div>
-          <Link to="/plans" className="relative z-10 bg-white text-[#FD6585] px-4 py-2 rounded-full text-xs font-bold shadow-md flex items-center gap-1 hover:scale-105 transition">
-            View Plan <ArrowRight size={12} strokeWidth={3} />
+          <Link to="/plans" className="relative z-10 bg-gradient-to-r from-[#D97706] to-[#B45309] text-white px-4 py-2 rounded-xl text-xs font-black shadow-md shadow-amber-700/20 flex items-center gap-1 hover:scale-105 transition">
+            View Plans <ArrowRight size={12} strokeWidth={3} />
           </Link>
         </div>
 
@@ -426,36 +451,36 @@ const Home = () => {
             <div className="pt-6 pb-2">
               <div className="flex items-center justify-between mb-3">
                 <div>
-                  <h3 className="text-xl font-extrabold text-[#0F172A] tracking-tight">Explore Products</h3>
-                  <p className="text-xs text-[#64748B] font-medium mt-0.5">Filter by category to view products</p>
+                  <h3 className="text-xl font-extrabold text-[#18181B] tracking-tight">Explore Products</h3>
+                  <p className="text-xs text-[#71717A] font-medium mt-0.5">Filter by category to view products</p>
                 </div>
-                <Link to="/plans" className="text-[#4A3AFF] text-xs font-bold flex items-center gap-0.5 hover:underline">
+                <Link to="/plans" className="text-[#EA580C] text-xs font-bold flex items-center gap-0.5 hover:underline">
                   See All <ArrowRight size={14} />
                 </Link>
               </div>
 
               {/* Category Filter Pills: Normal, Special, Coming Soon */}
-              <div className="flex items-center gap-2 p-1.5 bg-gray-100/90 rounded-2xl mb-4 shadow-inner">
+              <div className="flex items-center gap-2 p-1.5 bg-orange-100/60 rounded-2xl mb-4 shadow-inner">
                 <button
                   type="button"
                   onClick={() => setSelectedCategory('normal')}
-                  className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl text-xs font-black transition-all ${
+                  className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl text-xs font-black transition-all cursor-pointer ${
                     selectedCategory === 'normal'
-                      ? 'bg-white text-[#0F172A] shadow-md shadow-gray-200/60 scale-[1.02]'
-                      : 'text-gray-500 hover:text-gray-900'
+                      ? 'bg-white text-[#EA580C] shadow-md shadow-orange-200/80 scale-[1.02]'
+                      : 'text-zinc-600 hover:text-zinc-900'
                   }`}
                 >
-                  <Package size={14} className={selectedCategory === 'normal' ? 'text-[#4A3AFF]' : ''} />
+                  <Package size={14} className={selectedCategory === 'normal' ? 'text-[#EA580C]' : ''} />
                   <span>Normal ({normalPlans.length})</span>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => setSelectedCategory('special')}
-                  className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl text-xs font-black transition-all ${
+                  className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl text-xs font-black transition-all cursor-pointer ${
                     selectedCategory === 'special'
-                      ? 'bg-gradient-to-r from-amber-500 to-yellow-500 text-white shadow-md shadow-amber-500/25 scale-[1.02]'
-                      : 'text-gray-500 hover:text-amber-600'
+                      ? 'bg-gradient-to-r from-red-500 to-orange-500 text-white shadow-md shadow-red-500/25 scale-[1.02]'
+                      : 'text-zinc-600 hover:text-red-600'
                   }`}
                 >
                   <Sparkles size={14} />
@@ -465,10 +490,10 @@ const Home = () => {
                 <button
                   type="button"
                   onClick={() => setSelectedCategory('coming_soon')}
-                  className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl text-xs font-black transition-all ${
+                  className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl text-xs font-black transition-all cursor-pointer ${
                     selectedCategory === 'coming_soon'
-                      ? 'bg-gradient-to-r from-orange-500 to-amber-600 text-white shadow-md shadow-orange-500/25 scale-[1.02]'
-                      : 'text-gray-500 hover:text-orange-600'
+                      ? 'bg-gradient-to-r from-orange-600 to-amber-600 text-white shadow-md shadow-orange-500/25 scale-[1.02]'
+                      : 'text-zinc-600 hover:text-orange-600'
                   }`}
                 >
                   <Clock size={14} />
@@ -522,6 +547,12 @@ const Home = () => {
           handleCloseModal();
           navigate('/add-cash');
         }}
+      />
+
+      {/* Notification Drawer Modal */}
+      <NotificationModal
+        isOpen={showNotifModal}
+        onClose={() => setShowNotifModal(false)}
       />
     </div>
   );

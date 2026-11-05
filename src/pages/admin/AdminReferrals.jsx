@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../../lib/axios';
+import { useModal } from '../../context/ModalContext';
 import { 
   Users, 
   Gift, 
@@ -16,14 +17,29 @@ import {
   Wallet,
   Sparkles,
   ShieldCheck,
-  Check
+  Check,
+  Settings,
+  Save,
+  CheckCircle
 } from 'lucide-react';
 
 const AdminReferrals = () => {
+  const { showAlert, showConfirm } = useModal();
   const [rewards, setRewards] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filterStatus, setFilterStatus] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Referral Settings State
+  const [referralSettings, setReferralSettings] = useState({
+    referrerBonusRupees: 100,
+    refereeBonusRupees: 100,
+    description: '',
+    isActive: true
+  });
+  const [savingSettings, setSavingSettings] = useState(false);
+  const [settingsSuccess, setSettingsSuccess] = useState(false);
+  const [settingsError, setSettingsError] = useState('');
   
   // Action Modal State
   const [actionModal, setActionModal] = useState({
@@ -38,7 +54,42 @@ const AdminReferrals = () => {
 
   useEffect(() => {
     fetchRewards();
+    fetchReferralSettings();
   }, []);
+
+  const fetchReferralSettings = async () => {
+    try {
+      const res = await api.get('/admin/referral-settings');
+      if (res.data?.success && res.data.data) {
+        setReferralSettings({
+          referrerBonusRupees: res.data.data.referrerBonusRupees ?? 100,
+          refereeBonusRupees: res.data.data.refereeBonusRupees ?? 100,
+          description: res.data.data.description || '',
+          isActive: res.data.data.isActive ?? true
+        });
+      }
+    } catch (err) {
+      console.error('Failed to load referral settings:', err);
+    }
+  };
+
+  const handleSaveSettings = async (e) => {
+    e.preventDefault();
+    setSavingSettings(true);
+    setSettingsSuccess(false);
+    setSettingsError('');
+    try {
+      const res = await api.put('/admin/referral-settings', referralSettings);
+      if (res.data?.success) {
+        setSettingsSuccess(true);
+        setTimeout(() => setSettingsSuccess(false), 3000);
+      }
+    } catch (err) {
+      setSettingsError(err.response?.data?.message || err.response?.data?.error || 'Failed to update referral amounts');
+    } finally {
+      setSavingSettings(false);
+    }
+  };
 
   const fetchRewards = async () => {
     try {
@@ -53,11 +104,14 @@ const AdminReferrals = () => {
   };
 
   const openRewardModal = (item, type) => {
-    // Default recommended amount (e.g. ₹100 or 10% of deposit)
     const depositRupees = (item.depositAmount || 0) / 100;
+    // Uses the configured admin referral reward as standard default
+    const configuredReferrerBonus = Number(referralSettings.referrerBonusRupees) || 100;
+    const configuredRefereeBonus = Number(referralSettings.refereeBonusRupees) || 100;
+
     const defaultReward = type === 'referrer' 
-      ? Math.max(100, Math.round(depositRupees * 0.1)) 
-      : 100;
+      ? configuredReferrerBonus 
+      : configuredRefereeBonus;
 
     setActionModal({
       show: true,
@@ -72,13 +126,36 @@ const AdminReferrals = () => {
     });
   };
 
+  const handleApproveBoth = async (item) => {
+    const defaultReferrerRupees = Number(referralSettings.referrerBonusRupees) || 100;
+    const defaultRefereeRupees = Number(referralSettings.refereeBonusRupees) || 100;
+
+    const confirmed = await showConfirm(
+      `Approve and credit referral bonuses now?\n\n• Referrer (${item.referrer?.name}): ₹${defaultReferrerRupees}\n• Friend (${item.referredUser?.name}): ₹${defaultRefereeRupees}`,
+      { title: 'Approve Referral Rewards', confirmText: 'Approve & Credit' }
+    );
+    if (!confirmed) return;
+
+    try {
+      const res = await api.post(`/admin/referrals/${item._id}/approve-both`, {
+        referrerAmount: defaultReferrerRupees,
+        refereeAmount: defaultRefereeRupees
+      });
+      if (res.data?.success) {
+        await showAlert(res.data.message || 'Both referral rewards credited successfully!', 'success');
+        await fetchRewards();
+      }
+    } catch (err) {
+      await showAlert(err.response?.data?.message || err.response?.data?.error || 'Failed to approve referral rewards', 'error');
+    }
+  };
   const openRejectModal = (item) => {
     setActionModal({
       show: true,
       type: 'reject',
       item,
       amount: '',
-      note: 'Deposit did not qualify for referral reward (e.g. refunded or invalid deposit)',
+      note: '',
       error: '',
       submitting: false
     });
@@ -86,66 +163,71 @@ const AdminReferrals = () => {
 
   const handleActionSubmit = async (e) => {
     e.preventDefault();
-    const { type, item, amount, note } = actionModal;
+    if (!actionModal.item) return;
 
     setActionModal(prev => ({ ...prev, submitting: true, error: '' }));
 
     try {
-      if (type === 'referrer') {
-        const numAmount = Number(amount);
-        if (!numAmount || numAmount <= 0) {
-          throw new Error('Please enter a valid reward amount in rupees');
-        }
-        await api.post(`/admin/referrals/${item._id}/send-referrer`, {
-          amount: numAmount,
-          note
-        });
-      } else if (type === 'referredUser') {
-        const numAmount = Number(amount);
-        if (!numAmount || numAmount <= 0) {
-          throw new Error('Please enter a valid reward amount in rupees');
-        }
-        await api.post(`/admin/referrals/${item._id}/send-referred-user`, {
-          amount: numAmount,
-          note
-        });
-      } else if (type === 'reject') {
-        await api.post(`/admin/referrals/${item._id}/reject`, {
-          reason: note
-        });
-      }
+      const endpoint = actionModal.type === 'referrer'
+        ? `/admin/referrals/${actionModal.item._id}/send-referrer`
+        : actionModal.type === 'referredUser'
+          ? `/admin/referrals/${actionModal.item._id}/send-referred-user`
+          : `/admin/referrals/${actionModal.item._id}/reject`;
 
-      setActionModal({ show: false, type: '', item: null, amount: '', note: '', error: '', submitting: false });
-      fetchRewards();
+      const payload = actionModal.type === 'reject'
+        ? { reason: actionModal.note }
+        : { amount: actionModal.amount, note: actionModal.note };
+
+      await api.post(endpoint, payload);
+
+      // Refresh list
+      await fetchRewards();
+
+      // Close modal
+      setActionModal({
+        show: false,
+        type: '',
+        item: null,
+        amount: '',
+        note: '',
+        error: '',
+        submitting: false
+      });
+
     } catch (err) {
-      setActionModal(prev => ({
-        ...prev,
-        submitting: false,
-        error: err.response?.data?.error || err.message || 'Action failed'
-      }));
+      const msg = err.response?.data?.message || err.response?.data?.error || 'Failed to process request';
+      setActionModal(prev => ({ ...prev, submitting: false, error: msg }));
     }
   };
 
-  const filteredRewards = rewards.filter((item) => {
-    if (filterStatus === 'pending') {
-      if (item.status !== 'pending_admin') return false;
-    } else if (filterStatus === 'partial') {
-      if (item.status !== 'referrer_paid') return false;
-    } else if (filterStatus === 'both_paid') {
-      if (item.status !== 'both_paid') return false;
-    } else if (filterStatus === 'rejected') {
-      if (item.status !== 'rejected') return false;
-    }
+  // Filter rewards
+  const filteredRewards = rewards.filter(r => {
+    const matchesFilter = 
+      filterStatus === 'all' ? true :
+      filterStatus === 'pending' ? r.status === 'pending_admin' :
+      filterStatus === 'partial' ? r.status === 'referrer_paid' :
+      filterStatus === 'both_paid' ? r.status === 'both_paid' :
+      filterStatus === 'rejected' ? r.status === 'rejected' : true;
 
-    if (!searchQuery) return true;
+    if (!matchesFilter) return false;
+
+    if (!searchQuery.trim()) return true;
+
     const q = searchQuery.toLowerCase();
+    const referrerName = r.referrer?.name?.toLowerCase() || '';
+    const referrerEmail = r.referrer?.email?.toLowerCase() || '';
+    const referrerCode = r.referrer?.referralCode?.toLowerCase() || '';
+    const referredUserName = r.referredUser?.name?.toLowerCase() || '';
+    const referredUserEmail = r.referredUser?.email?.toLowerCase() || '';
+    const utr = r.topUp?.utr?.toLowerCase() || '';
+
     return (
-      item.referrer?.name?.toLowerCase().includes(q) ||
-      item.referrer?.email?.toLowerCase().includes(q) ||
-      item.referredUser?.name?.toLowerCase().includes(q) ||
-      item.referredUser?.email?.toLowerCase().includes(q) ||
-      item.referrer?.referralCode?.toLowerCase().includes(q) ||
-      item.topUp?.utr?.toLowerCase().includes(q)
+      referrerName.includes(q) ||
+      referrerEmail.includes(q) ||
+      referrerCode.includes(q) ||
+      referredUserName.includes(q) ||
+      referredUserEmail.includes(q) ||
+      utr.includes(q)
     );
   });
 
@@ -154,38 +236,128 @@ const AdminReferrals = () => {
   const completedCount = rewards.filter(r => r.status === 'both_paid').length;
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto pb-12">
-      {/* Page Header */}
+    <div className="space-y-6">
+      
+      {/* Top Banner / Heading */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-black text-[#0F172A] tracking-tight flex items-center gap-2.5">
-            <Gift className="text-[#4A3AFF]" size={26} />
-            <span>Referral Deposit Audit & Rewards</span>
+          <h1 className="text-3xl font-extrabold text-[#0F172A] tracking-tight flex items-center gap-2.5">
+            <Gift className="text-[#4A3AFF]" size={28} />
+            <span>Referral Rewards & Bonus Control</span>
           </h1>
-          <p className="text-xs text-gray-500 font-medium mt-1">
-            When a referred user makes a deposit, review the transaction and manually issue referral bonus to both the Referrer and Referred user.
+          <p className="text-gray-500 mt-1 font-medium text-xs sm:text-sm">
+            Set default referral rewards for users and review first-deposit referral bonus payouts.
           </p>
         </div>
-
         <button
-          onClick={fetchRewards}
-          disabled={loading}
-          className="inline-flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-200 text-gray-700 hover:text-[#4A3AFF] hover:border-[#4A3AFF] text-xs font-bold rounded-xl shadow-xs transition cursor-pointer self-start sm:self-auto"
+          onClick={() => { fetchRewards(); fetchReferralSettings(); }}
+          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-white border border-gray-200 text-gray-700 text-xs font-bold shadow-xs hover:bg-gray-50 transition cursor-pointer self-start sm:self-auto"
         >
-          <RefreshCw size={15} className={loading ? 'animate-spin text-[#4A3AFF]' : ''} />
-          <span>Refresh List</span>
+          <RefreshCw size={14} className={loading ? 'animate-spin text-[#4A3AFF]' : ''} />
+          <span>Refresh</span>
         </button>
       </div>
 
-      {/* KPI Cards */}
+      {/* REFERRAL AMOUNT CONTROL CARD */}
+      <div className="bg-white rounded-3xl p-6 sm:p-7 border border-gray-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
+        <div className="flex items-center justify-between pb-4 border-b border-gray-100">
+          <div className="flex items-center gap-2.5">
+            <div className="w-10 h-10 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center font-black">
+              <Coins size={20} />
+            </div>
+            <div>
+              <h2 className="text-base font-extrabold text-[#0F172A]">Set Referral & Welcome Bonus Amounts</h2>
+              <p className="text-xs text-gray-400">Configure how much bonus is awarded for each referral in EarnBuddy.</p>
+            </div>
+          </div>
+          <span className={`text-[11px] font-bold px-3 py-1 rounded-full ${referralSettings.isActive ? 'bg-emerald-50 text-emerald-600 border border-emerald-200' : 'bg-red-50 text-red-600 border border-red-200'}`}>
+            {referralSettings.isActive ? '● Referral System Active' : '● Referral System Paused'}
+          </span>
+        </div>
+
+        {settingsSuccess && (
+          <div className="mt-4 p-3 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-bold flex items-center gap-2 animate-fade-in">
+            <CheckCircle size={16} />
+            <span>Referral bonus amounts updated successfully!</span>
+          </div>
+        )}
+
+        {settingsError && (
+          <div className="mt-4 p-3 rounded-2xl bg-red-50 border border-red-200 text-red-700 text-xs font-bold flex items-center gap-2">
+            <AlertCircle size={16} />
+            <span>{settingsError}</span>
+          </div>
+        )}
+
+        <form onSubmit={handleSaveSettings} className="mt-5 grid grid-cols-1 sm:grid-cols-3 gap-4 items-end">
+          {/* Referrer Reward */}
+          <div>
+            <label className="block text-xs font-extrabold text-gray-700 uppercase tracking-wider mb-1.5">
+              Referrer Bonus (₹ per friend)
+            </label>
+            <div className="relative">
+              <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center font-bold text-gray-400 text-sm">
+                ₹
+              </span>
+              <input
+                type="number"
+                min="0"
+                step="any"
+                value={referralSettings.referrerBonusRupees}
+                onChange={(e) => setReferralSettings({ ...referralSettings, referrerBonusRupees: e.target.value })}
+                className="w-full pl-8 pr-4 py-2.5 rounded-2xl border-2 border-gray-200 text-sm font-black text-[#0F172A] focus:border-[#4A3AFF] focus:ring-4 focus:ring-[#4A3AFF]/10 focus:outline-none transition"
+                required
+              />
+            </div>
+            <p className="text-[11px] text-gray-400 mt-1">Cash paid to the user who shared their link.</p>
+          </div>
+
+          {/* Referee Welcome Bonus */}
+          <div>
+            <label className="block text-xs font-extrabold text-gray-700 uppercase tracking-wider mb-1.5">
+              Friend Welcome Bonus (₹)
+            </label>
+            <div className="relative">
+              <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center font-bold text-gray-400 text-sm">
+                ₹
+              </span>
+              <input
+                type="number"
+                min="0"
+                step="any"
+                value={referralSettings.refereeBonusRupees}
+                onChange={(e) => setReferralSettings({ ...referralSettings, refereeBonusRupees: e.target.value })}
+                className="w-full pl-8 pr-4 py-2.5 rounded-2xl border-2 border-gray-200 text-sm font-black text-[#0F172A] focus:border-[#4A3AFF] focus:ring-4 focus:ring-[#4A3AFF]/10 focus:outline-none transition"
+                required
+              />
+            </div>
+            <p className="text-[11px] text-gray-400 mt-1">Bonus given to the new user who joined.</p>
+          </div>
+
+          {/* Save Button */}
+          <div>
+            <button
+              type="submit"
+              disabled={savingSettings}
+              className="w-full py-2.5 px-4 rounded-2xl bg-[#4A3AFF] hover:bg-[#3D2EE0] text-white text-xs font-extrabold shadow-sm hover:shadow transition cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-50"
+            >
+              {savingSettings ? <RefreshCw size={14} className="animate-spin" /> : <Save size={14} />}
+              <span>{savingSettings ? 'Saving...' : 'Update Referral Amounts'}</span>
+            </button>
+            <p className="text-[11px] text-gray-400 mt-1 text-center">Applies to all new referrals & defaults.</p>
+          </div>
+        </form>
+      </div>
+
+      {/* KPI Stats Overview */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="p-5 rounded-2xl bg-white border border-gray-100 shadow-[0_4px_20px_rgb(0,0,0,0.03)] space-y-1">
           <div className="flex items-center justify-between text-xs font-extrabold text-amber-600 uppercase tracking-wider">
-            <span>Pending Admin Review</span>
+            <span>Pending First-Deposit Review</span>
             <Clock size={16} />
           </div>
           <div className="text-2xl font-black text-[#0F172A]">{pendingCount}</div>
-          <p className="text-[11px] text-gray-400">Referred users who completed a deposit</p>
+          <p className="text-[11px] text-gray-400">Referred users who deposited and await bonus credit</p>
         </div>
 
         <div className="p-5 rounded-2xl bg-white border border-gray-100 shadow-[0_4px_20px_rgb(0,0,0,0.03)] space-y-1">
@@ -248,161 +420,186 @@ const AdminReferrals = () => {
       {/* Rewards Table / List */}
       <div className="bg-white rounded-3xl border border-gray-100 shadow-[0_10px_35px_rgba(0,0,0,0.04)] overflow-hidden">
         {loading ? (
-          <div className="p-16 text-center text-gray-400 flex flex-col items-center justify-center gap-2">
-            <RefreshCw size={24} className="animate-spin text-[#4A3AFF]" />
-            <span className="text-xs font-bold uppercase tracking-wider">Loading referral events...</span>
+          <div className="p-12 text-center text-gray-400">
+            <RefreshCw size={24} className="animate-spin mx-auto mb-2 text-[#4A3AFF]" />
+            <span className="text-xs font-bold">Loading referral review requests...</span>
           </div>
         ) : filteredRewards.length === 0 ? (
-          <div className="p-16 text-center text-gray-400 flex flex-col items-center justify-center">
-            <Gift size={36} className="text-gray-300 mb-2 stroke-1" />
-            <p className="text-sm font-bold text-gray-600">No referral deposits match the current criteria</p>
-            <p className="text-xs text-gray-400 mt-0.5">When users deposit after signing up with a referral code, they appear here.</p>
+          <div className="p-12 text-center text-gray-400">
+            <Gift size={32} className="mx-auto mb-2 text-gray-300" />
+            <p className="text-sm font-extrabold text-[#0F172A]">No Referral Reward Requests Found</p>
+            <p className="text-xs text-gray-400 mt-1">
+              When referred users complete their wallet deposit, review entries appear here automatically.
+            </p>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="border-b border-gray-100 bg-gray-50/70 text-[11px] font-black uppercase tracking-wider text-gray-400">
-                  <th className="px-6 py-4">Referred User (Depositor)</th>
-                  <th className="px-6 py-4">Deposit Amount & UTR</th>
-                  <th className="px-6 py-4">Referrer (Invited By)</th>
-                  <th className="px-6 py-4">Workflow Status</th>
-                  <th className="px-6 py-4">Rewards Sent</th>
-                  <th className="px-6 py-4 text-right">Admin Actions</th>
+                <tr className="border-b border-gray-100 bg-gray-50/75 text-[11px] font-black text-gray-400 uppercase tracking-wider">
+                  <th className="py-4 px-6">Referrer (Inviter)</th>
+                  <th className="py-4 px-6">Referred User (Friend)</th>
+                  <th className="py-4 px-6">Deposit Details</th>
+                  <th className="py-4 px-6">Referrer Bonus</th>
+                  <th className="py-4 px-6">Referred User Bonus</th>
+                  <th className="py-4 px-6 text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100 text-xs">
-                {filteredRewards.map((item) => {
-                  const isReferrerPaid = item.referrerRewardAmount > 0;
-                  const isReferredUserPaid = item.referredUserRewardAmount > 0;
-                  const isRejected = item.status === 'rejected';
+              <tbody className="divide-y divide-gray-50 text-xs">
+                {filteredRewards.map((r) => {
+                  const depositRupees = (r.depositAmount || 0) / 100;
+                  const isReferrerPaid = Boolean(r.referrerRewardAmount && r.referrerRewardAmount > 0);
+                  const isReferredUserPaid = Boolean(r.referredUserRewardAmount && r.referredUserRewardAmount > 0);
+                  const isRejected = r.status === 'rejected';
 
                   return (
-                    <tr key={item._id} className="hover:bg-gray-50/70 transition">
-                      {/* Referred User */}
-                      <td className="px-6 py-4">
-                        <div className="font-extrabold text-[#0F172A]">{item.referredUser?.name}</div>
-                        <div className="text-[11px] text-gray-400">{item.referredUser?.email}</div>
-                        <span className="inline-block mt-1 text-[10px] font-mono font-bold bg-gray-100 text-gray-600 px-2 py-0.5 rounded">
-                          Bal: ₹{((item.referredUser?.walletBalance || 0) / 100).toFixed(2)}
-                        </span>
-                      </td>
-
-                      {/* Deposit Amount & UTR */}
-                      <td className="px-6 py-4">
-                        <div className="text-base font-black text-[#0F172A]">
-                          ₹{((item.depositAmount || 0) / 100).toFixed(2)}
-                        </div>
-                        <div className="text-[11px] font-mono text-indigo-600 font-bold truncate max-w-[140px]">
-                          UTR: {item.topUp?.utr || 'Auto Gateway'}
-                        </div>
-                        <div className="text-[10px] text-gray-400">
-                          {new Date(item.createdAt).toLocaleDateString()}
-                        </div>
-                      </td>
-
+                    <tr key={r._id} className="hover:bg-gray-50/50 transition">
+                      
                       {/* Referrer */}
-                      <td className="px-6 py-4">
-                        <div className="font-extrabold text-[#0F172A]">{item.referrer?.name}</div>
-                        <div className="text-[11px] text-gray-400">{item.referrer?.email}</div>
-                        <span className="inline-block mt-1 text-[10px] font-mono font-bold bg-indigo-50 text-indigo-700 border border-indigo-100 px-2 py-0.5 rounded">
-                          Code: {item.referrer?.referralCode || 'N/A'}
+                      <td className="py-4 px-6">
+                        <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 rounded-full bg-purple-50 text-[#4A3AFF] font-black flex items-center justify-center shrink-0">
+                            {r.referrer?.name?.charAt(0).toUpperCase() || 'R'}
+                          </div>
+                          <div>
+                            <div className="font-extrabold text-[#0F172A]">{r.referrer?.name || 'Unknown'}</div>
+                            <div className="text-[11px] text-gray-400">{r.referrer?.email}</div>
+                            <div className="text-[10px] font-mono font-bold text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded mt-0.5 inline-block">
+                              Code: {r.referrer?.referralCode || 'N/A'}
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+
+                      {/* Referred User */}
+                      <td className="py-4 px-6">
+                        <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 rounded-full bg-emerald-50 text-emerald-600 font-black flex items-center justify-center shrink-0">
+                            {r.referredUser?.name?.charAt(0).toUpperCase() || 'U'}
+                          </div>
+                          <div>
+                            <div className="font-extrabold text-[#0F172A]">{r.referredUser?.name || 'Unknown'}</div>
+                            <div className="text-[11px] text-gray-400">{r.referredUser?.email}</div>
+                            <div className="text-[10px] text-gray-400 mt-0.5">
+                              Joined: {new Date(r.createdAt).toLocaleDateString()}
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+
+                      {/* Deposit Details */}
+                      <td className="py-4 px-6">
+                        <div className="font-extrabold text-[#0F172A] text-sm">
+                          ₹{depositRupees.toFixed(2)}
+                        </div>
+                        {r.topUp?.utr && (
+                          <div className="text-[10px] font-mono text-gray-500 truncate max-w-[150px]" title={r.topUp.utr}>
+                            UTR: {r.topUp.utr}
+                          </div>
+                        )}
+                        <span className="inline-block mt-0.5 px-2 py-0.5 rounded-full text-[9px] font-black uppercase bg-emerald-50 text-emerald-700">
+                          Verified Deposit
                         </span>
                       </td>
 
-                      {/* Workflow Status */}
-                      <td className="px-6 py-4">
-                        {isRejected ? (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
-                            <X size={13} />
-                            <span>Rejected</span>
-                          </span>
-                        ) : isReferrerPaid && isReferredUserPaid ? (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                            <CheckCircle2 size={13} />
-                            <span>Both Rewarded</span>
-                          </span>
-                        ) : isReferrerPaid ? (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
-                            <Clock size={13} />
-                            <span>Step 2: Pay Referee</span>
+                      {/* Referrer Reward Status */}
+                      <td className="py-4 px-6">
+                        {isReferrerPaid ? (
+                          <div>
+                            <span className="inline-flex items-center gap-1 font-extrabold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-lg">
+                              <CheckCircle2 size={12} />
+                              ₹{(r.referrerRewardAmount / 100).toFixed(2)} Credited
+                            </span>
+                            {r.referrerPaidAt && (
+                              <p className="text-[10px] text-gray-400 mt-0.5">
+                                {new Date(r.referrerPaidAt).toLocaleDateString()}
+                              </p>
+                            )}
+                          </div>
+                        ) : isRejected ? (
+                          <span className="text-gray-400 font-bold">Rejected</span>
+                        ) : !r.referrerEligible ? (
+                          <div className="flex flex-col items-start gap-1">
+                            <span className="inline-flex items-center gap-1 font-extrabold text-rose-600 bg-rose-50 px-2 py-0.5 rounded-lg text-[10px]" title="User hasn't made any deposit yet">
+                              <AlertCircle size={11} />
+                              Ineligible (No Deposit)
+                            </span>
+                            <span className="text-[9.5px] text-gray-400">Must deposit to qualify</span>
+                          </div>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => openRewardModal(r, 'referrer')}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#4A3AFF] hover:bg-[#3D2EE0] text-white text-[11px] font-extrabold shadow-xs transition cursor-pointer"
+                          >
+                            <Coins size={12} />
+                            <span>Credit Referrer</span>
+                          </button>
+                        )}
+                      </td>
+
+                      {/* Referred User Reward Status */}
+                      <td className="py-4 px-6">
+                        {isReferredUserPaid ? (
+                          <div>
+                            <span className="inline-flex items-center gap-1 font-extrabold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-lg">
+                              <CheckCircle2 size={12} />
+                              ₹{(r.referredUserRewardAmount / 100).toFixed(2)} Credited
+                            </span>
+                            {r.referredUserPaidAt && (
+                              <p className="text-[10px] text-gray-400 mt-0.5">
+                                {new Date(r.referredUserPaidAt).toLocaleDateString()}
+                              </p>
+                            )}
+                          </div>
+                        ) : isRejected ? (
+                          <span className="text-gray-400 font-bold">Rejected</span>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => openRewardModal(r, 'referredUser')}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-extrabold shadow-xs transition cursor-pointer"
+                          >
+                            <Gift size={12} />
+                            <span>Credit User Bonus</span>
+                          </button>
+                        )}
+                      </td>
+
+                      {/* Actions */}
+                      <td className="py-4 px-6 text-right">
+                        {!isRejected && (!isReferrerPaid || !isReferredUserPaid) ? (
+                          <div className="flex items-center justify-end gap-1.5">
+                            {!isReferrerPaid && !isReferredUserPaid && r.referrerEligible && (
+                              <button
+                                type="button"
+                                onClick={() => handleApproveBoth(r)}
+                                className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-[11px] font-extrabold shadow-xs transition cursor-pointer flex items-center gap-1"
+                                title="Approve and credit both bonuses in one click"
+                              >
+                                <CheckCircle2 size={12} />
+                                <span>Approve All</span>
+                              </button>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => openRejectModal(r)}
+                              className="px-2.5 py-1 text-gray-400 hover:text-rose-600 text-[11px] font-bold hover:bg-rose-50 rounded-lg transition cursor-pointer"
+                            >
+                              Reject
+                            </button>
+                          </div>
+                        ) : isRejected ? (
+                          <span className="text-[11px] text-rose-500 font-extrabold" title={r.rejectedReason}>
+                            Rejected
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-50 text-amber-700 border border-amber-200 animate-pulse">
-                            <Clock size={13} />
-                            <span>Pending Referrer Pay</span>
+                          <span className="text-[11px] text-emerald-600 font-black inline-flex items-center gap-1">
+                            <ShieldCheck size={14} /> Completed
                           </span>
                         )}
                       </td>
 
-                      {/* Rewards breakdown */}
-                      <td className="px-6 py-4 space-y-1">
-                        <div className="flex items-center gap-1.5 text-[11px]">
-                          <span className="text-gray-400">To Referrer:</span>
-                          {isReferrerPaid ? (
-                            <span className="font-black text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100">
-                              +₹{(item.referrerRewardAmount / 100).toFixed(2)}
-                            </span>
-                          ) : (
-                            <span className="text-gray-400 font-bold">Unpaid</span>
-                          )}
-                        </div>
-
-                        <div className="flex items-center gap-1.5 text-[11px]">
-                          <span className="text-gray-400">To Referee:</span>
-                          {isReferredUserPaid ? (
-                            <span className="font-black text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100">
-                              +₹{(item.referredUserRewardAmount / 100).toFixed(2)}
-                            </span>
-                          ) : (
-                            <span className="text-gray-400 font-bold">Unpaid</span>
-                          )}
-                        </div>
-                      </td>
-
-                      {/* Admin Actions */}
-                      <td className="px-6 py-4 text-right space-x-2">
-                        {/* Step 1: Send to Referrer */}
-                        {!isReferrerPaid && !isRejected && (
-                          <button
-                            type="button"
-                            onClick={() => openRewardModal(item, 'referrer')}
-                            className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-[#4A3AFF] to-[#6C5DD3] hover:from-[#3D2EE0] hover:to-[#5B4DC7] text-white text-xs font-bold shadow-xs transition cursor-pointer inline-flex items-center gap-1.5"
-                          >
-                            <span>1. Pay Referrer</span>
-                            <ArrowRight size={13} />
-                          </button>
-                        )}
-
-                        {/* Step 2: Send to Referred User */}
-                        {isReferrerPaid && !isReferredUserPaid && !isRejected && (
-                          <button
-                            type="button"
-                            onClick={() => openRewardModal(item, 'referredUser')}
-                            className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white text-xs font-bold shadow-xs transition cursor-pointer inline-flex items-center gap-1.5"
-                          >
-                            <span>2. Pay Referred User</span>
-                            <Sparkles size={13} />
-                          </button>
-                        )}
-
-                        {/* Reject button */}
-                        {!isReferrerPaid && !isRejected && (
-                          <button
-                            type="button"
-                            onClick={() => openRejectModal(item)}
-                            className="px-2.5 py-1.5 rounded-xl border border-gray-200 text-gray-500 hover:text-rose-600 hover:border-rose-300 hover:bg-rose-50 text-xs font-bold transition cursor-pointer"
-                          >
-                            Reject
-                          </button>
-                        )}
-
-                        {isReferrerPaid && isReferredUserPaid && (
-                          <span className="text-[11px] font-bold text-emerald-600 inline-flex items-center gap-1">
-                            <Check size={14} strokeWidth={3} /> Completed
-                          </span>
-                        )}
-                      </td>
                     </tr>
                   );
                 })}
@@ -412,31 +609,69 @@ const AdminReferrals = () => {
         )}
       </div>
 
-      {/* ACTION MODAL */}
+      {/* MODAL: SEND REWARD / REJECT */}
       {actionModal.show && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#0F172A]/50 backdrop-blur-xs">
-          <div className="w-full max-w-md bg-white rounded-3xl p-6 sm:p-7 shadow-2xl border border-gray-100 space-y-5 animate-in fade-in zoom-in-95 duration-150">
-            <div className="flex items-center justify-between border-b border-gray-100 pb-3">
-              <div>
-                <h3 className="text-base font-extrabold text-[#0F172A]">
-                  {actionModal.type === 'referrer' ? 'Send Reward to Referrer' :
-                   actionModal.type === 'referredUser' ? 'Send Reward to Referred User' :
-                   'Reject Referral Reward'}
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 overflow-y-auto">
+          <div className="w-full max-w-md rounded-[28px] bg-white p-6 sm:p-7 shadow-2xl space-y-5 animate-scale-up">
+            
+            {/* Header */}
+            <div className="flex items-center justify-between pb-3 border-b border-gray-100">
+              <div className="flex items-center gap-2">
+                <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${
+                  actionModal.type === 'reject' 
+                    ? 'bg-red-50 text-red-600' 
+                    : actionModal.type === 'referrer'
+                      ? 'bg-purple-50 text-[#4A3AFF]'
+                      : 'bg-emerald-50 text-emerald-600'
+                }`}>
+                  {actionModal.type === 'reject' ? <AlertCircle size={16} /> : <Gift size={16} />}
+                </div>
+                <h3 className="font-extrabold text-[#0F172A] text-base">
+                  {actionModal.type === 'referrer' 
+                    ? 'Credit Referrer Bonus' 
+                    : actionModal.type === 'referredUser'
+                      ? 'Credit Friend Welcome Bonus'
+                      : 'Reject Referral Reward'}
                 </h3>
-                <p className="text-xs text-gray-400 mt-0.5">
-                  Deposit of ₹{((actionModal.item?.depositAmount || 0) / 100).toFixed(2)} by {actionModal.item?.referredUser?.name}
-                </p>
               </div>
               <button
+                type="button"
                 onClick={() => setActionModal({ show: false, type: '', item: null, amount: '', note: '', error: '', submitting: false })}
-                className="text-gray-400 hover:text-gray-600 p-1"
+                className="w-8 h-8 rounded-full bg-gray-100 text-gray-500 hover:bg-gray-200 flex items-center justify-center transition cursor-pointer"
               >
-                <X size={20} />
+                <X size={16} />
               </button>
             </div>
 
+            {/* Recipient Overview Box */}
+            <div className="p-3.5 rounded-2xl bg-gray-50 border border-gray-100 text-xs space-y-1">
+              <div className="flex items-center justify-between">
+                <span className="text-gray-400 font-bold uppercase text-[10px]">Recipient</span>
+                <span className="font-extrabold text-[#0F172A]">
+                  {actionModal.type === 'referrer' 
+                    ? actionModal.item?.referrer?.name 
+                    : actionModal.item?.referredUser?.name}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-gray-400 font-bold uppercase text-[10px]">Email</span>
+                <span className="text-gray-600 font-medium">
+                  {actionModal.type === 'referrer' 
+                    ? actionModal.item?.referrer?.email 
+                    : actionModal.item?.referredUser?.email}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-gray-400 font-bold uppercase text-[10px]">Original Deposit</span>
+                <span className="font-mono font-black text-emerald-600">
+                  ₹{((actionModal.item?.depositAmount || 0) / 100).toFixed(2)}
+                </span>
+              </div>
+            </div>
+
+            {/* Error Message */}
             {actionModal.error && (
-              <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-bold flex items-center gap-2">
+              <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs font-bold flex items-center gap-2">
                 <AlertCircle size={16} />
                 <span>{actionModal.error}</span>
               </div>
@@ -463,7 +698,7 @@ const AdminReferrals = () => {
                     />
                   </div>
                   <p className="text-[11px] text-gray-400 mt-1">
-                    Will be credited directly to {actionModal.type === 'referrer' ? actionModal.item?.referrer?.name : actionModal.item?.referredUser?.name}'s The Cashly Wallet with a ledger credit entry.
+                    Will be credited directly to {actionModal.type === 'referrer' ? actionModal.item?.referrer?.name : actionModal.item?.referredUser?.name}'s EarnBuddy Wallet with a ledger credit entry.
                   </p>
                 </div>
               ) : null}
@@ -520,4 +755,3 @@ const AdminReferrals = () => {
 };
 
 export default AdminReferrals;
-

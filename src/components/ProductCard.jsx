@@ -113,16 +113,16 @@ const ProductCard = ({ plan, isPurchasing, onPurchase }) => {
             <span className="font-extrabold text-[#0F172A]">₹{(plan.initialPayment / 100).toFixed(0)}</span>
           </div>
           <div className="flex justify-between py-0.5">
-            <span className="text-[#64748B] font-medium">Daily</span>
-            <span className="font-extrabold text-[#10B981]">₹{(plan.dailyAmount / 100).toFixed(0)}</span>
+            <span className="text-zinc-500 font-medium">Daily Return</span>
+            <span className="font-black text-[#059669]">₹{(plan.dailyAmount / 100).toFixed(0)}</span>
           </div>
           <div className="flex justify-between py-0.5">
-            <span className="text-[#64748B] font-medium">Period</span>
-            <span className="font-extrabold text-[#0F172A]">{plan.durationDays} Days</span>
+            <span className="text-zinc-500 font-medium">Period</span>
+            <span className="font-extrabold text-[#18181B]">{plan.durationDays} Days</span>
           </div>
           <div className="flex justify-between py-0.5">
-            <span className="text-[#64748B] font-medium">Total Returns</span>
-            <span className="font-extrabold text-[#4A3AFF]">₹{(plan.totalScheduled / 100).toFixed(0)}</span>
+            <span className="text-zinc-500 font-medium">Total Returns</span>
+            <span className="font-black text-[#EA580C]">₹{(plan.totalScheduled / 100).toFixed(0)}</span>
           </div>
 
           <div className="mt-4">
@@ -131,7 +131,7 @@ const ProductCard = ({ plan, isPurchasing, onPurchase }) => {
                 type="button"
                 disabled
                 onClick={(e) => e.stopPropagation()}
-                className="w-full rounded-xl bg-slate-200 text-slate-500 py-2 text-xs font-black shadow-none cursor-not-allowed uppercase tracking-wider flex items-center justify-center gap-1.5"
+                className="w-full rounded-xl bg-orange-50 text-orange-400 py-2.5 text-xs font-black shadow-none cursor-not-allowed uppercase tracking-wider flex items-center justify-center gap-1.5"
               >
                 <Clock size={13} className="stroke-[2.5]" />
                 <span>Coming Soon</span>
@@ -143,7 +143,7 @@ const ProductCard = ({ plan, isPurchasing, onPurchase }) => {
                   onPurchase(plan);
                 }}
                 disabled={isPurchasing}
-                className="w-full rounded-xl bg-gradient-to-r from-amber-500 via-yellow-500 to-amber-600 py-2 font-bold text-white shadow-md shadow-amber-500/20 transition hover:opacity-95 disabled:opacity-50 flex items-center justify-center gap-1.5"
+                className="w-full rounded-xl bg-gradient-to-r from-red-600 via-orange-600 to-amber-600 py-2.5 font-black text-white shadow-md shadow-red-500/25 transition hover:brightness-105 active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-1.5 cursor-pointer text-xs uppercase tracking-wide"
               >
                 <Star size={13} fill="currentColor" />
                 <span>{isPurchasing ? 'Processing...' : 'Invest in Special'}</span>
@@ -155,7 +155,7 @@ const ProductCard = ({ plan, isPurchasing, onPurchase }) => {
                   onPurchase(plan);
                 }}
                 disabled={isPurchasing}
-                className="w-full rounded-xl bg-gradient-to-r from-[#10B981] to-[#059669] py-2 font-bold text-white shadow-sm transition hover:opacity-90 disabled:opacity-50"
+                className="w-full rounded-xl bg-gradient-to-r from-[#EA580C] to-[#EF4444] py-2.5 font-black text-white shadow-md shadow-orange-500/20 transition hover:brightness-105 active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-1 cursor-pointer text-xs uppercase tracking-wide"
               >
                 {isPurchasing ? 'Processing...' : 'Invest Now'}
               </button>

@@ -387,8 +387,9 @@ const Aviator = () => {
         }
         
         const token = localStorage.getItem('token');
-        const newSocket = io(import.meta.env.VITE_API_URL?.replace('/api', '') || 'https://thecashly-backend.onrender.com', {
-          auth: { token }
+        const newSocket = io(import.meta.env.VITE_API_URL?.replace(/\/api(\/earnbuddy)?/, '') || 'https://earnbuddy-backend.onrender.com', {
+          auth: { token, tenant: 'earnbuddy' },
+          extraHeaders: { 'x-app-source': 'earnbuddy' }
         });
         
         newSocket.on('connect', () => {
@@ -961,7 +962,7 @@ const Aviator = () => {
             </div>
 
             <div className="pt-4 border-t border-white/5 text-center text-xs text-gray-500">
-              The Cashly Aviator Engine v2.0
+              EarnBuddy Aviator Engine v2.0
             </div>
           </div>
         </div>

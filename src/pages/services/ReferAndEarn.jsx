@@ -53,7 +53,10 @@ export default function ReferAndEarn() {
     fetchReferralStats();
   }, []);
 
-  const referralCode = referralData.referralCode || user?.referralCode || 'THECASHLY';
+  const referrerRewardRupees = Math.round((referralData.rewardPerReferral || 10000) / 100);
+  const refereeRewardRupees = Math.round((referralData.refereeBonus || 10000) / 100);
+
+  const referralCode = referralData.referralCode || user?.referralCode || 'EARNBUDDY';
   const siteUrl = window.location.origin;
   const referralLink = `${siteUrl}/register?ref=${referralCode}`;
 
@@ -77,7 +80,7 @@ export default function ReferAndEarn() {
     }
   };
 
-  const shareMessage = `🎮 Hey! Join The Cashly to play games, invest in smart daily return assets, and cash out real money!\n\nUse my referral code *${referralCode}* to get an instant ₹100 welcome bonus!\n\nRegister here: ${referralLink}`;
+  const shareMessage = `🎮 Hey! Join EarnBuddy to play games, invest in smart daily return assets, and cash out real money!\n\nUse my referral code *${referralCode}* to get an instant ₹${refereeRewardRupees} welcome bonus!\n\nRegister here: ${referralLink}`;
 
   const handleWhatsAppShare = () => {
     const url = `https://api.whatsapp.com/send?text=${encodeURIComponent(shareMessage)}`;
@@ -88,7 +91,7 @@ export default function ReferAndEarn() {
     if (navigator.share) {
       try {
         await navigator.share({
-          title: 'Join The Cashly & Earn Real Cash',
+          title: 'Join EarnBuddy & Earn Real Cash',
           text: shareMessage,
           url: referralLink,
         });
@@ -114,9 +117,34 @@ export default function ReferAndEarn() {
         </button>
         <div>
           <h1 className="text-xl sm:text-2xl font-black text-[#0F172A] tracking-tight">Refer & Earn</h1>
-          <p className="text-xs text-gray-500 font-medium">Invite friends and earn ₹100 per signup</p>
+          <p className="text-xs text-gray-500 font-medium">Invite friends and earn ₹{referrerRewardRupees} per signup</p>
         </div>
       </div>
+
+      {/* Eligibility Warning Banner if user has not deposited yet */}
+      {!loading && referralData.hasDeposited === false && (
+        <div className="rounded-[24px] p-4.5 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200/80 shadow-xs flex items-start gap-3.5">
+          <div className="w-10 h-10 rounded-2xl bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-sm mt-0.5">
+            <Coins size={20} />
+          </div>
+          <div className="flex-1">
+            <h3 className="text-sm font-extrabold text-amber-950">
+              Deposit Required to Unlock Referral Earnings
+            </h3>
+            <p className="text-xs text-amber-900/80 font-medium mt-0.5 leading-relaxed">
+              You must make at least one wallet deposit to become eligible for referral cash bonuses when your invited friends sign up and deposit.
+            </p>
+            <button
+              type="button"
+              onClick={() => navigate('/add-cash')}
+              className="mt-2.5 inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold shadow-xs transition cursor-pointer"
+            >
+              <span>Make a Deposit Now</span>
+              <ChevronRight size={14} />
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Hero Banner */}
       <div className="relative rounded-[28px] overflow-hidden bg-gradient-to-br from-[#0F172A] via-[#1E1B4B] to-[#4338CA] p-6 sm:p-8 text-white shadow-xl">
@@ -130,11 +158,11 @@ export default function ReferAndEarn() {
               Unlimited Cash Rewards
             </span>
             <h2 className="text-2xl sm:text-3xl font-black text-white leading-tight">
-              Earn ₹100 for every friend <br />
-              <span className="text-amber-300">who joins The Cashly!</span>
+              Earn ₹{referrerRewardRupees} for every friend <br />
+              <span className="text-amber-300">who joins EarnBuddy!</span>
             </h2>
             <p className="text-blue-100 text-xs sm:text-sm font-medium max-w-sm">
-              Your friend gets a ₹100 welcome bonus, and you receive ₹100 directly in your wallet balance.
+              Your friend gets a ₹{refereeRewardRupees} welcome bonus, and you receive ₹{referrerRewardRupees} directly in your wallet balance.
             </p>
           </div>
 
@@ -266,7 +294,7 @@ export default function ReferAndEarn() {
             <div>
               <h4 className="text-sm font-extrabold text-[#0F172A]">Friend Signs Up & Deposits</h4>
               <p className="text-xs text-gray-500 font-medium mt-0.5">
-                They register on The Cashly using your referral code and make their first wallet deposit.
+                They register on EarnBuddy using your referral code and make their first wallet deposit.
               </p>
             </div>
           </div>
@@ -368,7 +396,7 @@ export default function ReferAndEarn() {
             <div>
               <p className="text-sm font-extrabold text-[#0F172A]">No friends invited yet</p>
               <p className="text-xs text-gray-400 max-w-xs mt-1">
-                Share your referral link with friends to earn your first ₹100 bonus!
+                Share your referral link with friends to earn your first ₹{referrerRewardRupees} bonus!
               </p>
             </div>
             <button

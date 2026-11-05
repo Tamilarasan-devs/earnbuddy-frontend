@@ -19,7 +19,7 @@ export default function HomePage() {
               <Gamepad2 className="h-6 w-6 text-white" strokeWidth={2.5} />
             </div>
             <span className="text-2xl font-extrabold tracking-tight text-slate-900 uppercase">
-              THE<span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-500 to-orange-500">CASHLY</span>
+              EARN<span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-500 to-orange-500">BUDDY</span>
             </span>
           </div>
           

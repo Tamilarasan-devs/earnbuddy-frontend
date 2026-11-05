@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import axios from 'axios';
 import api from '../../lib/axios';
+import { useModal } from '../../context/ModalContext';
 import { Users, Banknote, ShieldAlert, Zap, Gift } from 'lucide-react';
 
 const AdminDashboard = () => {
+  const { showAlert } = useModal();
   const [stats, setStats] = useState({
     totalUsers: 0,
     activePlans: 0,
@@ -32,9 +33,9 @@ const AdminDashboard = () => {
     setTriggering(true);
     try {
       const res = await api.post('/admin/trigger-payouts');
-      alert(`Success! Processed ${res.data.processedCount} payouts.`);
+      await showAlert(`Success! Processed ${res.data.processedCount} payouts.`, 'success');
     } catch (err) {
-      alert('Failed to trigger payouts');
+      await showAlert('Failed to trigger payouts. Please try again.', 'error');
     } finally {
       setTriggering(false);
     }
@@ -44,7 +45,7 @@ const AdminDashboard = () => {
     <div className="space-y-8">
       <div>
         <h1 className="text-3xl font-extrabold text-[#0F172A] tracking-tight">System Overview</h1>
-        <p className="text-gray-500 mt-1 font-medium">Here's what's happening with The Cashly today.</p>
+        <p className="text-gray-500 mt-1 font-medium">Here's what's happening with EarnBuddy today.</p>
       </div>
       
       <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-5">

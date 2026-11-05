@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import api from '../lib/axios';
 import { useAuth } from '../context/AuthContext';
 import {
@@ -77,6 +78,7 @@ const AddCash = () => {
   const [statusMsg, setStatusMsg] = useState({ text: '', type: '' });
   const [showSandbox, setShowSandbox] = useState(false);
   const [showUtrHelp, setShowUtrHelp] = useState(false);
+  const [showQrCode, setShowQrCode] = useState(false);
   const [qrMode, setQrMode] = useState('default'); // 'default' (admin QR) or 'dynamic' (amount QR)
 
   const quickAmounts = [100, 500, 1000, 2000, 5000];
@@ -85,8 +87,8 @@ const AddCash = () => {
 
   // Single assigned channel (shuffled & equally balanced by backend)
   const currentChannel = {
-    upiId: paymentSetting?.upiId || 'cashly@upi',
-    upiName: paymentSetting?.upiName || 'The Cashly Payments',
+    upiId: paymentSetting?.upiId || 'earnbuddy@upi',
+    upiName: paymentSetting?.upiName || 'EarnBuddy Payments',
     qrCodeImage: paymentSetting?.qrCodeImage || '',
     title: paymentSetting?.channelTitle || 'UPI QR'
   };
@@ -164,7 +166,7 @@ const AddCash = () => {
   };
 
   const handleCopyUpi = () => {
-    const upi = currentChannel.upiId || paymentSetting?.upiId || 'cashly@upi';
+    const upi = currentChannel.upiId || paymentSetting?.upiId || 'earnbuddy@upi';
     navigator.clipboard.writeText(upi);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
@@ -176,12 +178,12 @@ const AddCash = () => {
    * Generates clean universal upi:// and intent:// schemes with proper fallbacks.
    */
   const getUpiUrl = (appScheme = '', customAmt = null) => {
-    const rawUpiId = (currentChannel?.upiId || paymentSetting?.upiId || 'cashly@upi').trim();
-    const upiName = (currentChannel?.upiName || paymentSetting?.upiName || 'The Cashly Payments').trim();
+    const rawUpiId = (currentChannel?.upiId || paymentSetting?.upiId || 'earnbuddy@upi').trim();
+    const upiName = (currentChannel?.upiName || paymentSetting?.upiName || 'EarnBuddy Payments').trim();
     const amtToUse = customAmt !== null ? customAmt : amount;
     const num = parseFloat(amtToUse);
     const amountParam = !isNaN(num) && num > 0 ? `&am=${num.toFixed(2)}` : '';
-    const note = 'The Cashly Deposit';
+    const note = 'EarnBuddy Deposit';
     // Dynamic fresh transaction reference to prevent "duplicate replay" and "technical glitch" blocks
     const txnRef = `CSH${Date.now()}`;
 
@@ -245,8 +247,8 @@ const AddCash = () => {
       return;
     }
 
-    const rawUpiId = (currentChannel?.upiId || paymentSetting?.upiId || 'cashly@upi').trim();
-    const upiName = (currentChannel?.upiName || paymentSetting?.upiName || 'The Cashly Payments').trim();
+    const rawUpiId = (currentChannel?.upiId || paymentSetting?.upiId || 'earnbuddy@upi').trim();
+    const upiName = (currentChannel?.upiName || paymentSetting?.upiName || 'EarnBuddy Payments').trim();
 
     // Automatically copy our given UPI ID to clipboard as a helpful backup
     if (rawUpiId) {
@@ -261,9 +263,9 @@ const AddCash = () => {
     
     // Direct app-specific custom schemes
     const directSchemeUrl = appScheme === 'phonepe' 
-      ? `phonepe://pay?pa=${rawUpiId}&pn=${encodeURIComponent(upiName)}&am=${numAmount.toFixed(2)}&cu=INR&tn=${encodeURIComponent('The Cashly Deposit')}&tr=CSH${Date.now()}`
+      ? `phonepe://pay?pa=${rawUpiId}&pn=${encodeURIComponent(upiName)}&am=${numAmount.toFixed(2)}&cu=INR&tn=${encodeURIComponent('EarnBuddy Deposit')}&tr=CSH${Date.now()}`
       : appScheme === 'paytm'
-        ? `paytmmp://pay?pa=${rawUpiId}&pn=${encodeURIComponent(upiName)}&am=${numAmount.toFixed(2)}&cu=INR&tn=${encodeURIComponent('The Cashly Deposit')}&tr=CSH${Date.now()}`
+        ? `paytmmp://pay?pa=${rawUpiId}&pn=${encodeURIComponent(upiName)}&am=${numAmount.toFixed(2)}&cu=INR&tn=${encodeURIComponent('EarnBuddy Deposit')}&tr=CSH${Date.now()}`
         : genericUrl;
 
     setStatusMsg({
@@ -292,16 +294,19 @@ const AddCash = () => {
     const numAmount = parseFloat(amount);
 
     if (!numAmount || numAmount < minAmount) {
+      toast.error(`Minimum deposit amount is ₹${minAmount}`);
       setStatusMsg({ text: `Minimum deposit amount is ₹${minAmount}`, type: 'error' });
       return;
     }
     if (numAmount > maxAmount) {
+      toast.error(`Maximum deposit amount is ₹${maxAmount.toLocaleString()}`);
       setStatusMsg({ text: `Maximum deposit amount is ₹${maxAmount.toLocaleString()}`, type: 'error' });
       return;
     }
 
     const cleanUtr = utr.trim();
     if (!cleanUtr || cleanUtr.length < 6) {
+      toast.error('Please enter a valid 12-digit UPI UTR number');
       setStatusMsg({ text: 'Please enter a valid 12-digit UPI UTR / Reference number from your payment receipt.', type: 'error' });
       return;
     }
@@ -315,6 +320,17 @@ const AddCash = () => {
       });
 
       if (res.data.success) {
+        toast.success(`Deposit request of ₹${numAmount.toLocaleString()} submitted! Verification is in progress.`, {
+          icon: '✅',
+          duration: 5000,
+          style: {
+            borderRadius: '16px',
+            background: '#0F172A',
+            color: '#10B981',
+            border: '1px solid rgba(16, 185, 129, 0.3)',
+            fontWeight: '700'
+          }
+        });
         setStatusMsg({
           text: `Deposit request of ₹${numAmount} submitted successfully! It will be verified by admin shortly.`,
           type: 'success'
@@ -324,8 +340,10 @@ const AddCash = () => {
         await fetchUserTopUps();
       }
     } catch (err) {
+      const errorMsg = err.response?.data?.error || 'Failed to submit deposit. Please check UTR and try again.';
+      toast.error(errorMsg);
       setStatusMsg({
-        text: err.response?.data?.error || 'Failed to submit deposit. Please check UTR and try again.',
+        text: errorMsg,
         type: 'error'
       });
     } finally {
@@ -443,7 +461,7 @@ const AddCash = () => {
                 <p className="text-sm font-bold">{statusMsg.text}</p>
                 {statusMsg.appName && (
                   <p className="text-xs text-indigo-700 mt-0.5">
-                    UPI ID ({currentChannel?.upiId || 'cashly@upi'}) was copied to clipboard. After payment, copy the 12-digit UTR and paste in Step 3 below.
+                    UPI ID ({currentChannel?.upiId || 'earnbuddy@upi'}) was copied to clipboard. After payment, copy the 12-digit UTR and paste in Step 3 below.
                   </p>
                 )}
               </div>
@@ -554,75 +572,75 @@ const AddCash = () => {
         </div>
 
         {/* STEP 2: CHOOSE PAYMENT METHOD (DIRECT PHONEPE & PAYTM REDIRECT) */}
-        <div className="bg-white rounded-3xl p-6 sm:p-7 shadow-[0_10px_35px_rgba(0,0,0,0.04)] border border-gray-100 space-y-5">
-          <div className="flex items-center justify-between border-b border-gray-100 pb-3.5">
-            <div className="flex items-center gap-2.5">
-              <span className="w-7 h-7 rounded-lg bg-[#4A3AFF] text-white text-xs font-black flex items-center justify-center shadow-md shadow-[#4A3AFF]/30">
+        <div className="bg-white rounded-3xl p-4 sm:p-7 shadow-[0_10px_35px_rgba(0,0,0,0.04)] border border-gray-100 space-y-4 sm:space-y-5">
+          <div className="flex flex-col xs:flex-row items-start xs:items-center justify-between gap-2 border-b border-gray-100 pb-3 sm:pb-3.5">
+            <div className="flex items-center gap-2 sm:gap-2.5">
+              <span className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-[#4A3AFF] text-white text-xs font-black flex items-center justify-center shadow-md shadow-[#4A3AFF]/30 shrink-0">
                 2
               </span>
               <div>
-                <h3 className="font-extrabold text-[#0F172A] text-lg">Instant 1-Click Pay</h3>
-                <p className="text-xs text-gray-500">
-                  Tap to open PhonePe or Paytm with your entered amount pre-filled
+                <h3 className="font-extrabold text-[#0F172A] text-base sm:text-lg leading-tight">Instant 1-Click Pay</h3>
+                <p className="text-[11px] sm:text-xs text-gray-500 mt-0.5">
+                  Tap to open PhonePe or Paytm pre-filled
                 </p>
               </div>
             </div>
 
             {amount && Number(amount) >= minAmount ? (
-              <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-black bg-emerald-50 text-emerald-700 border border-emerald-200 animate-pulse">
-                <span>Amount ₹{amount} Ready</span>
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full text-[10px] sm:text-xs font-black bg-emerald-50 text-emerald-700 border border-emerald-200">
+                <span>₹{amount} Ready</span>
               </span>
             ) : (
-              <span className="text-xs font-semibold text-gray-400">
+              <span className="text-[11px] sm:text-xs font-semibold text-gray-400">
                 Enter amount in Step 1
               </span>
             )}
           </div>
 
-          {/* Primary 1-Click App Cards: PhonePe & Paytm */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {/* Primary 1-Click App Cards: PhonePe & Paytm (Side-by-Side Parallel on all screens) */}
+          <div className="grid grid-cols-2 gap-2.5 sm:gap-4">
             
             {/* PhonePe Card Button */}
             <button
               type="button"
               onClick={() => handleAppPay('phonepe')}
-              className="group relative flex flex-col justify-between p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-[#5F259F] via-[#521e8e] to-[#3f1370] hover:from-[#6b2ab3] hover:to-[#4c1785] text-white shadow-lg shadow-[#5F259F]/25 hover:shadow-xl hover:shadow-[#5F259F]/35 transition-all duration-200 active:scale-[0.98] cursor-pointer border border-white/10 text-left overflow-hidden"
+              className="group relative flex flex-col justify-between p-3 sm:p-4 md:p-5 rounded-2xl bg-gradient-to-br from-[#5F259F] via-[#521e8e] to-[#3f1370] hover:from-[#6b2ab3] hover:to-[#4c1785] text-white shadow-md shadow-[#5F259F]/20 hover:shadow-lg hover:shadow-[#5F259F]/30 transition-all duration-200 active:scale-[0.98] cursor-pointer border border-white/10 text-left overflow-hidden min-h-[145px] sm:min-h-[175px]"
             >
-              <div className="flex items-start justify-between gap-3 w-full">
-                <div className="w-12 h-12 rounded-xl bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center shrink-0 shadow-inner group-hover:scale-105 transition-transform">
-                  <PhonePeIcon className="w-7 h-7" />
+              <div className="flex items-start justify-between gap-1 w-full">
+                <div className="w-8 h-8 sm:w-11 sm:h-11 rounded-xl bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center shrink-0 shadow-inner group-hover:scale-105 transition-transform">
+                  <PhonePeIcon className="w-5 h-5 sm:w-7 sm:h-7" />
                 </div>
-                <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-white/15 text-purple-100 border border-white/10">
-                  Direct Redirect
+                <span className="text-[8.5px] sm:text-[10px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-white/15 text-purple-100 border border-white/10 shrink-0">
+                  Direct
                 </span>
               </div>
 
-              <div className="mt-4">
-                <span className="text-[11px] font-bold text-purple-200 block uppercase tracking-wider">
+              <div className="mt-1.5 sm:mt-3 flex-1 flex flex-col justify-center">
+                <span className="text-[9px] sm:text-[11px] font-bold text-purple-200 block uppercase tracking-wider leading-none">
                   Pay via
                 </span>
-                <span className="text-xl font-black text-white block tracking-tight">
+                <span className="text-sm sm:text-xl font-black text-white block tracking-tight leading-tight mt-0.5">
                   PhonePe
                 </span>
-                <span className="text-[11px] font-mono font-bold text-amber-300 block truncate mt-0.5">
-                  To: {currentChannel?.upiId || 'cashly@upi'}
+                <span className="text-[9px] sm:text-[11px] font-mono font-bold text-amber-300 block truncate mt-0.5">
+                  {currentChannel?.upiId || 'earnbuddy@upi'}
                 </span>
 
                 {amount && Number(amount) >= minAmount ? (
-                  <div className="mt-2.5 inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-amber-400 text-slate-950 font-black text-xs shadow-sm">
+                  <div className="mt-1.5 sm:mt-2.5 inline-flex items-center gap-1 px-2 py-0.5 sm:px-3 sm:py-1 rounded-lg sm:rounded-xl bg-amber-400 text-slate-950 font-black text-[10px] sm:text-xs shadow-sm w-fit">
                     <span>Pay ₹{amount}</span>
-                    <ArrowRight size={13} strokeWidth={3} />
+                    <ArrowRight size={11} strokeWidth={3} />
                   </div>
                 ) : (
-                  <span className="text-xs font-semibold text-purple-200/90 block mt-2">
-                    Tap to launch directly
+                  <span className="text-[9px] sm:text-xs font-semibold text-purple-200/90 block mt-1 truncate">
+                    Tap to launch
                   </span>
                 )}
               </div>
 
-              <div className="mt-3 pt-3 border-t border-white/10 flex items-center justify-between text-[11px] font-bold text-purple-200">
-                <span className="truncate mr-2">Direct to {currentChannel?.upiId || 'PhonePe'}</span>
-                <ArrowUpRight size={15} className="shrink-0 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+              <div className="mt-1.5 sm:mt-3 pt-1.5 sm:pt-2.5 border-t border-white/10 flex items-center justify-between text-[9px] sm:text-[11px] font-bold text-purple-200">
+                <span className="truncate mr-1">Direct Redirect</span>
+                <ArrowUpRight size={13} className="shrink-0 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
               </div>
             </button>
 
@@ -630,43 +648,43 @@ const AddCash = () => {
             <button
               type="button"
               onClick={() => handleAppPay('paytm')}
-              className="group relative flex flex-col justify-between p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-[#002970] via-[#001f5c] to-[#00133d] hover:from-[#003894] hover:to-[#001f5c] text-white shadow-lg shadow-[#002970]/25 hover:shadow-xl hover:shadow-[#002970]/35 transition-all duration-200 active:scale-[0.98] cursor-pointer border border-[#00BAF2]/30 text-left overflow-hidden"
+              className="group relative flex flex-col justify-between p-3 sm:p-4 md:p-5 rounded-2xl bg-gradient-to-br from-[#002970] via-[#001f5c] to-[#00133d] hover:from-[#003894] hover:to-[#001f5c] text-white shadow-md shadow-[#002970]/20 hover:shadow-lg hover:shadow-[#002970]/30 transition-all duration-200 active:scale-[0.98] cursor-pointer border border-[#00BAF2]/30 text-left overflow-hidden min-h-[145px] sm:min-h-[175px]"
             >
-              <div className="flex items-start justify-between gap-3 w-full">
-                <div className="w-12 h-12 rounded-xl bg-white/10 backdrop-blur-md border border-[#00BAF2]/40 flex items-center justify-center shrink-0 shadow-inner group-hover:scale-105 transition-transform">
-                  <PaytmIcon className="w-7 h-7" />
+              <div className="flex items-start justify-between gap-1 w-full">
+                <div className="w-8 h-8 sm:w-11 sm:h-11 rounded-xl bg-white/10 backdrop-blur-md border border-[#00BAF2]/40 flex items-center justify-center shrink-0 shadow-inner group-hover:scale-105 transition-transform">
+                  <PaytmIcon className="w-5 h-5 sm:w-7 sm:h-7" />
                 </div>
-                <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-[#00BAF2]/20 text-[#00BAF2] border border-[#00BAF2]/30">
-                  Direct Redirect
+                <span className="text-[8.5px] sm:text-[10px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-[#00BAF2]/20 text-[#00BAF2] border border-[#00BAF2]/30 shrink-0">
+                  Direct
                 </span>
               </div>
 
-              <div className="mt-4">
-                <span className="text-[11px] font-bold text-cyan-200 block uppercase tracking-wider">
+              <div className="mt-1.5 sm:mt-3 flex-1 flex flex-col justify-center">
+                <span className="text-[9px] sm:text-[11px] font-bold text-cyan-200 block uppercase tracking-wider leading-none">
                   Pay via
                 </span>
-                <span className="text-xl font-black text-white block tracking-tight">
+                <span className="text-sm sm:text-xl font-black text-white block tracking-tight leading-tight mt-0.5">
                   Paytm
                 </span>
-                <span className="text-[11px] font-mono font-bold text-[#00BAF2] block truncate mt-0.5">
-                  To: {currentChannel?.upiId || 'cashly@upi'}
+                <span className="text-[9px] sm:text-[11px] font-mono font-bold text-[#00BAF2] block truncate mt-0.5">
+                  {currentChannel?.upiId || 'earnbuddy@upi'}
                 </span>
 
                 {amount && Number(amount) >= minAmount ? (
-                  <div className="mt-2.5 inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-[#00BAF2] text-slate-950 font-black text-xs shadow-sm">
+                  <div className="mt-1.5 sm:mt-2.5 inline-flex items-center gap-1 px-2 py-0.5 sm:px-3 sm:py-1 rounded-lg sm:rounded-xl bg-[#00BAF2] text-slate-950 font-black text-[10px] sm:text-xs shadow-sm w-fit">
                     <span>Pay ₹{amount}</span>
-                    <ArrowRight size={13} strokeWidth={3} />
+                    <ArrowRight size={11} strokeWidth={3} />
                   </div>
                 ) : (
-                  <span className="text-xs font-semibold text-cyan-200/90 block mt-2">
-                    Tap to launch directly
+                  <span className="text-[9px] sm:text-xs font-semibold text-cyan-200/90 block mt-1 truncate">
+                    Tap to launch
                   </span>
                 )}
               </div>
 
-              <div className="mt-3 pt-3 border-t border-white/10 flex items-center justify-between text-[11px] font-bold text-cyan-200">
-                <span className="truncate mr-2">Direct to {currentChannel?.upiId || 'Paytm'}</span>
-                <ArrowUpRight size={15} className="shrink-0 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+              <div className="mt-1.5 sm:mt-3 pt-1.5 sm:pt-2.5 border-t border-white/10 flex items-center justify-between text-[9px] sm:text-[11px] font-bold text-cyan-200">
+                <span className="truncate mr-1">Direct Redirect</span>
+                <ArrowUpRight size={13} className="shrink-0 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
               </div>
             </button>
           </div>
@@ -689,126 +707,159 @@ const AddCash = () => {
 
           {/* Or Scan QR Code & Copy UPI Section */}
           <div className="pt-2">
-            <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-b from-slate-50 to-gray-50 border border-gray-200/80 space-y-4">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                <div className="flex items-center gap-2">
-                  <QrCode size={16} className="text-[#4A3AFF]" />
-                  <span className="text-xs font-bold text-gray-700 uppercase tracking-wider">
-                    Scan QR / Transfer via UPI ID
-                  </span>
+            {!showQrCode ? (
+              <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-indigo-50/70 via-purple-50/50 to-slate-50 border border-indigo-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-11 h-11 rounded-xl bg-[#4A3AFF]/10 text-[#4A3AFF] flex items-center justify-center shrink-0">
+                    <QrCode size={22} />
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-bold text-gray-900">Want to pay by scanning QR Code?</h4>
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      Click Pay to reveal the UPI QR code and payment details for ₹{amount || 'your deposit'}.
+                    </p>
+                  </div>
                 </div>
 
-                <div className="flex items-center gap-2">
-                  {/* Shuffle / Rotate Button (Available when multiple active QR channels are configured) */}
-                  {paymentSetting?.hasMultipleChannels && (
+                <button
+                  type="button"
+                  onClick={() => setShowQrCode(true)}
+                  className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#4A3AFF] to-[#6355FF] hover:from-[#3D2EE0] hover:to-[#4A3AFF] text-white font-extrabold text-xs sm:text-sm shadow-md shadow-[#4A3AFF]/25 transition active:scale-95 cursor-pointer flex items-center justify-center gap-2 shrink-0"
+                >
+                  <QrCode size={16} />
+                  <span>{amount && Number(amount) >= minAmount ? `Pay ₹${amount} via QR` : 'Pay via QR Code'}</span>
+                </button>
+              </div>
+            ) : (
+              <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-b from-slate-50 to-gray-50 border border-gray-200/80 space-y-4 animate-fadeIn">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <QrCode size={16} className="text-[#4A3AFF]" />
+                    <span className="text-xs font-bold text-gray-700 uppercase tracking-wider">
+                      Scan QR / Transfer via UPI ID
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    {/* Shuffle / Rotate Button (Available when multiple active QR channels are configured) */}
+                    {paymentSetting?.hasMultipleChannels && (
+                      <button
+                        type="button"
+                        onClick={() => fetchPaymentSettings(true)}
+                        disabled={shuffling}
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-white hover:bg-gray-50 text-[#4A3AFF] border border-[#4A3AFF]/20 text-[11px] font-bold transition shadow-2xs cursor-pointer active:scale-95 disabled:opacity-50"
+                        title="Rotate to another available QR code"
+                      >
+                        <RefreshCw size={12} className={shuffling ? 'animate-spin' : ''} />
+                        <span>{shuffling ? 'Rotating...' : 'Switch QR'}</span>
+                      </button>
+                    )}
+
+                    {currentChannel?.qrCodeImage && amount && Number(amount) >= minAmount && (
+                      <div className="flex items-center gap-1 text-[11px] font-bold">
+                        <button
+                          type="button"
+                          onClick={() => setQrMode('default')}
+                          className={`px-2 py-0.5 rounded-lg transition ${
+                            qrMode === 'default'
+                              ? 'bg-[#4A3AFF] text-white'
+                              : 'bg-white text-gray-600 border border-gray-200'
+                          }`}
+                        >
+                          Uploaded QR
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setQrMode('dynamic')}
+                          className={`px-2 py-0.5 rounded-lg transition ${
+                            qrMode === 'dynamic'
+                              ? 'bg-[#4A3AFF] text-white'
+                              : 'bg-white text-gray-600 border border-gray-200'
+                          }`}
+                        >
+                          ₹{amount} QR
+                        </button>
+                      </div>
+                    )}
+
                     <button
                       type="button"
-                      onClick={() => fetchPaymentSettings(true)}
-                      disabled={shuffling}
-                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-white hover:bg-gray-50 text-[#4A3AFF] border border-[#4A3AFF]/20 text-[11px] font-bold transition shadow-2xs cursor-pointer active:scale-95 disabled:opacity-50"
-                      title="Rotate to another available QR code"
+                      onClick={() => setShowQrCode(false)}
+                      className="text-[11px] font-bold text-gray-500 hover:text-gray-700 px-2 py-1 rounded-lg hover:bg-gray-200/60 transition cursor-pointer"
                     >
-                      <RefreshCw size={12} className={shuffling ? 'animate-spin' : ''} />
-                      <span>{shuffling ? 'Rotating...' : 'Switch QR'}</span>
+                      Hide QR
                     </button>
-                  )}
-
-                  {currentChannel?.qrCodeImage && amount && Number(amount) >= minAmount && (
-                    <div className="flex items-center gap-1 text-[11px] font-bold">
-                      <button
-                        type="button"
-                        onClick={() => setQrMode('default')}
-                        className={`px-2 py-0.5 rounded-lg transition ${
-                          qrMode === 'default'
-                            ? 'bg-[#4A3AFF] text-white'
-                            : 'bg-white text-gray-600 border border-gray-200'
-                        }`}
-                      >
-                        Uploaded QR
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setQrMode('dynamic')}
-                        className={`px-2 py-0.5 rounded-lg transition ${
-                          qrMode === 'dynamic'
-                            ? 'bg-[#4A3AFF] text-white'
-                            : 'bg-white text-gray-600 border border-gray-200'
-                        }`}
-                      >
-                        ₹{amount} QR
-                      </button>
-                    </div>
-                  )}
+                  </div>
                 </div>
-              </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-12 gap-4 items-center">
-                {/* QR Code Graphic */}
-                <div className="sm:col-span-5 flex flex-col items-center justify-center text-center">
-                  <div className="p-2 bg-white rounded-2xl shadow-sm border border-gray-200 inline-block">
-                    <img
-                      src={
-                        qrMode === 'dynamic' && amount && Number(amount) >= minAmount
-                          ? dynamicQrUrl
-                          : getImageUrl(currentChannel?.qrCodeImage) || dynamicQrUrl
-                      }
-                      alt="UPI Payment QR Code"
-                      className="w-40 h-40 object-contain rounded-xl"
-                      onError={(e) => {
-                        if (dynamicQrUrl && e.currentTarget.src !== dynamicQrUrl) {
-                          e.currentTarget.src = dynamicQrUrl;
+                <div className="grid grid-cols-1 sm:grid-cols-12 gap-4 items-center">
+                  {/* QR Code Graphic */}
+                  <div className="sm:col-span-5 flex flex-col items-center justify-center text-center">
+                    <div className="p-2 bg-white rounded-2xl shadow-sm border border-gray-200 inline-block">
+                      <img
+                        src={
+                          qrMode === 'dynamic' && amount && Number(amount) >= minAmount
+                            ? dynamicQrUrl
+                            : getImageUrl(currentChannel?.qrCodeImage) || dynamicQrUrl
                         }
-                      }}
-                    />
-                  </div>
-                  <p className="text-[11px] font-bold text-gray-500 mt-1.5">
-                    {qrMode === 'dynamic' && amount && Number(amount) >= minAmount
-                      ? `Pre-filled with ₹${amount}`
-                      : currentChannel?.upiName || 'The Cashly Payments'}
-                  </p>
-                </div>
-
-                {/* UPI Copy Box & Instructions */}
-                <div className="sm:col-span-7 space-y-3">
-                  <div>
-                    <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1">
-                      UPI ID (VPA)
-                    </label>
-                    <div className="flex items-center justify-between p-3 rounded-xl bg-slate-900 text-white shadow-sm">
-                      <div className="overflow-hidden pr-2">
-                        <span className="text-[10px] text-slate-400 block uppercase font-bold tracking-wider">
-                          Payee ID ({currentChannel?.title || 'UPI'})
-                        </span>
-                        <span className="text-xs sm:text-sm font-mono font-bold text-emerald-400 select-all truncate block">
-                          {currentChannel?.upiId || 'cashly@upi'}
-                        </span>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={handleCopyUpi}
-                        className="px-3.5 py-1.5 bg-[#4A3AFF] hover:bg-[#3D2EE0] text-white text-xs font-bold rounded-xl transition flex items-center gap-1.5 shrink-0 shadow-sm active:scale-95 cursor-pointer"
-                      >
-                        {copied ? <Check size={14} /> : <Copy size={14} />}
-                        <span>{copied ? 'Copied!' : 'Copy'}</span>
-                      </button>
+                        alt="UPI Payment QR Code"
+                        className="w-40 h-40 object-contain rounded-xl"
+                        onError={(e) => {
+                          if (dynamicQrUrl && e.currentTarget.src !== dynamicQrUrl) {
+                            e.currentTarget.src = dynamicQrUrl;
+                          }
+                        }}
+                      />
                     </div>
+                    <p className="text-[11px] font-bold text-gray-500 mt-1.5">
+                      {qrMode === 'dynamic' && amount && Number(amount) >= minAmount
+                        ? `Pre-filled with ₹${amount}`
+                        : currentChannel?.upiName || 'EarnBuddy Payments'}
+                    </p>
                   </div>
 
-                  <div className="text-xs text-gray-600 bg-white p-3 rounded-xl border border-gray-200/80 space-y-1">
-                    <p className="font-bold text-slate-800 flex items-center gap-1">
-                      <Sparkles size={13} className="text-[#4A3AFF]" />
-                      Payee Name:
-                    </p>
-                    <p className="font-extrabold text-slate-900">
-                      {currentChannel?.upiName || 'The Cashly Payments'}
-                    </p>
-                    <p className="text-[11px] text-gray-500">
-                      Copy UPI ID, open PhonePe/Paytm, pay ₹{amount || 'the deposit amount'}, and copy the 12-digit UTR.
-                    </p>
+                  {/* UPI Copy Box & Instructions */}
+                  <div className="sm:col-span-7 space-y-3">
+                    <div>
+                      <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1">
+                        UPI ID (VPA)
+                      </label>
+                      <div className="flex items-center justify-between p-3 rounded-xl bg-slate-900 text-white shadow-sm">
+                        <div className="overflow-hidden pr-2">
+                          <span className="text-[10px] text-slate-400 block uppercase font-bold tracking-wider">
+                            Payee ID ({currentChannel?.title || 'UPI'})
+                          </span>
+                          <span className="text-xs sm:text-sm font-mono font-bold text-emerald-400 select-all truncate block">
+                            {currentChannel?.upiId || 'earnbuddy@upi'}
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={handleCopyUpi}
+                          className="px-3.5 py-1.5 bg-[#4A3AFF] hover:bg-[#3D2EE0] text-white text-xs font-bold rounded-xl transition flex items-center gap-1.5 shrink-0 shadow-sm active:scale-95 cursor-pointer"
+                        >
+                          {copied ? <Check size={14} /> : <Copy size={14} />}
+                          <span>{copied ? 'Copied!' : 'Copy'}</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="text-xs text-gray-600 bg-white p-3 rounded-xl border border-gray-200/80 space-y-1">
+                      <p className="font-bold text-slate-800 flex items-center gap-1">
+                        <Sparkles size={13} className="text-[#4A3AFF]" />
+                        Payee Name:
+                      </p>
+                      <p className="font-extrabold text-slate-900">
+                        {currentChannel?.upiName || 'EarnBuddy Payments'}
+                      </p>
+                      <p className="text-[11px] text-gray-500">
+                        Copy UPI ID, open PhonePe/Paytm, pay ₹{amount || 'the deposit amount'}, and copy the 12-digit UTR.
+                      </p>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
+            )}
           </div>
         </div>
 
@@ -927,7 +978,7 @@ const AddCash = () => {
               onClick={() => setShowSandbox(!showSandbox)}
               className="text-[11px] font-bold text-gray-400 hover:text-gray-600 underline cursor-pointer"
             >
-              {showSandbox ? 'Hide Sandbox Test Option' : 'Developer Sandbox Mode'}
+              {showSandbox ? 'Hide Sandbox Test Option' : ''}
             </button>
 
             {showSandbox && (

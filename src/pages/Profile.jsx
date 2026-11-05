@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useReferralSetting } from '../context/ReferralSettingContext';
 import { useNavigate } from 'react-router-dom';
 import { 
   User, 
@@ -30,6 +31,7 @@ import api from '../lib/axios';
 
 const Profile = () => {
   const { user, logout, fetchUser } = useAuth();
+  const { referrerBonusRupees } = useReferralSetting();
   const navigate = useNavigate();
   const fileInputRef = useRef(null);
 
@@ -166,30 +168,30 @@ const Profile = () => {
   return (
     <div className="relative min-h-screen bg-[#F8FAFC] pb-32 font-sans overflow-x-hidden -mx-4 -mt-4">
       
-      {/* Top Deep Header Background */}
-      <div className="relative bg-gradient-to-b from-[#0F172A] via-[#1E1B4B] to-[#3730A3] px-6 pt-7 pb-20 rounded-b-[40px] shadow-lg">
+      {/* Top Deep Header Background - Vibrant Flame Orange & Crimson Light Top */}
+      <div className="relative bg-gradient-to-b from-[#C2410C] via-[#EA580C] to-[#DC2626] px-6 pt-7 pb-20 rounded-b-[40px] shadow-lg shadow-orange-500/20">
         {/* Subtle background glow */}
-        <div className="absolute top-0 right-10 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none"></div>
+        <div className="absolute top-0 right-10 w-64 h-64 bg-amber-300/20 rounded-full blur-3xl pointer-events-none"></div>
 
         {/* Top Navigation Row */}
         <div className="flex items-center justify-between relative z-10 max-w-md mx-auto">
           {/* Brand Logo & Sub-tagline */}
           <div>
             <div className="flex items-center gap-1.5 relative">
-              <span className="text-white font-extrabold text-2xl tracking-tight">the</span>
+              <span className="text-white font-black text-2xl tracking-tight">Earn</span>
               <div className="relative inline-block">
-                <span className="text-[#38BDF8] font-black text-2xl tracking-tight">cashly</span>
-                <Crown size={13} className="text-[#FBBF24] fill-[#FBBF24] absolute -top-2 right-0.5 rotate-12 drop-shadow-sm" />
+                <span className="text-amber-200 font-black text-2xl tracking-tight">Buddy</span>
+                <Crown size={14} className="text-[#FBBF24] fill-[#FBBF24] absolute -top-2 right-0.5 rotate-12 drop-shadow-sm" />
               </div>
             </div>
-            <p className="text-[11px] text-white/70 font-semibold tracking-wider mt-0.5">Play • Earn • Grow</p>
+            <p className="text-[11px] text-orange-100 font-bold tracking-wider mt-0.5">Play • Earn • Grow</p>
           </div>
 
           {/* Settings Button */}
           <button 
             type="button"
             onClick={() => setActiveModal('settings')}
-            className="w-10 h-10 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center text-white/90 border border-white/15 hover:bg-white/20 transition cursor-pointer"
+            className="w-10 h-10 rounded-2xl bg-white/15 backdrop-blur-md flex items-center justify-center text-white border border-white/20 hover:bg-white/25 transition cursor-pointer shadow-xs"
             aria-label="Settings"
           >
             <Settings size={18} />
@@ -201,15 +203,15 @@ const Profile = () => {
       <div className="relative z-10 max-w-md mx-auto px-4 -mt-12 space-y-4">
 
         {/* 1. Hero User Profile Card */}
-        <div className="relative overflow-hidden rounded-[28px] p-5 bg-gradient-to-r from-[#F0EDFF] via-[#E8EDFF] to-[#DCE8FF] border border-white/80 shadow-[0_12px_32px_rgba(74,58,255,0.08)]">
-          {/* Decorative Wave Overlay */}
-          <div className="absolute right-0 bottom-0 w-44 h-44 bg-gradient-to-tl from-indigo-200/50 via-blue-200/30 to-transparent rounded-tl-full pointer-events-none"></div>
+        <div className="relative overflow-hidden rounded-[26px] p-5 bg-white border border-orange-100 shadow-[0_12px_32px_rgba(234,88,12,0.06)]">
+          {/* Decorative Corner Glow */}
+          <div className="absolute right-0 bottom-0 w-36 h-36 bg-gradient-to-tl from-orange-100/40 via-red-50/20 to-transparent rounded-tl-full pointer-events-none"></div>
 
           <div className="flex items-center gap-4 relative z-10">
             {/* Avatar Circle */}
             <div className="relative shrink-0">
-              <div className="w-20 h-20 rounded-full bg-gradient-to-tr from-[#6C5DD3] to-[#4A3AFF] p-1 shadow-md border-2 border-white">
-                <div className="w-full h-full rounded-full bg-[#6C5DD3] flex items-center justify-center overflow-hidden">
+              <div className="w-20 h-20 rounded-2xl bg-gradient-to-tr from-[#EA580C] to-[#EF4444] p-1 shadow-md border-2 border-white">
+                <div className="w-full h-full rounded-[14px] bg-[#C2410C] flex items-center justify-center overflow-hidden">
                   {user?.avatar ? (
                     <img src={user.avatar} alt="Profile" className="w-full h-full object-cover" />
                   ) : (
@@ -229,7 +231,7 @@ const Profile = () => {
               <button 
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                className="absolute bottom-0 right-0 w-7 h-7 bg-[#0F172A] rounded-full flex items-center justify-center text-white border-2 border-white shadow-md hover:scale-110 transition cursor-pointer"
+                className="absolute -bottom-1 -right-1 w-7 h-7 bg-[#18181B] rounded-xl flex items-center justify-center text-white border-2 border-white shadow-md hover:scale-110 transition cursor-pointer"
                 title="Change Avatar"
               >
                 <Camera size={13} />
@@ -240,24 +242,24 @@ const Profile = () => {
             <div className="flex-1 min-w-0">
               {/* Name + Verified Badge */}
               <div className="flex items-center gap-1.5 flex-wrap">
-                <h3 className="text-xl sm:text-2xl font-black text-[#0F172A] leading-tight">
+                <h3 className="text-xl sm:text-2xl font-black text-[#18181B] leading-tight">
                   {user?.name || 'arjun'}
                 </h3>
-                <div className="w-4 h-4 rounded-full bg-[#06B6D4] flex items-center justify-center text-white shadow-xs shrink-0">
+                <div className="w-4 h-4 rounded-full bg-[#10B981] flex items-center justify-center text-white shadow-xs shrink-0">
                   <Check size={11} strokeWidth={3.5} />
                 </div>
               </div>
 
               {/* Role Pill Badge */}
               <div className="mt-1">
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#D1FAE5] text-[#059669] text-[10px] font-black tracking-wider uppercase">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#10B981]"></span>
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-orange-50 text-orange-700 border border-orange-200 text-[10px] font-black tracking-wider uppercase">
+                  <span className="w-1.5 h-1.5 rounded-full bg-orange-500 animate-pulse"></span>
                   <span>{user?.role === 'admin' ? 'ADMIN' : 'CUSTOMER'}</span>
                 </span>
               </div>
 
               {/* Motto / Tagline */}
-              <p className="text-xs text-[#64748B] font-medium mt-1">
+              <p className="text-xs text-[#71717A] font-bold mt-1">
                 Play smart, win more!
               </p>
             </div>
@@ -265,11 +267,11 @@ const Profile = () => {
         </div>
 
         {/* 2. User Details Card (Full Name & Email Address) */}
-        <div className="bg-white rounded-[24px] shadow-[0_8px_30px_rgb(0,0,0,0.03)] border border-gray-100/80 p-4 space-y-2">
+        <div className="bg-white rounded-[24px] shadow-[0_8px_30px_rgb(0,0,0,0.03)] border border-orange-100/70 p-4 space-y-2">
           
           {/* Card Header with Common Edit Button */}
           <div className="flex items-center justify-between pb-2.5 px-1 border-b border-gray-100">
-            <span className="text-[11px] font-extrabold text-[#0F172A] uppercase tracking-wider">
+            <span className="text-[11px] font-extrabold text-[#18181B] uppercase tracking-wider">
               Personal Information
             </span>
             <button
@@ -279,7 +281,7 @@ const Profile = () => {
                 setMsg({ text: '', type: '' });
                 setActiveModal('profile');
               }}
-              className="inline-flex items-center gap-1.5 px-3 py-1 bg-[#F4F2FF] hover:bg-[#ECE8FF] text-[#4A3AFF] text-xs font-bold rounded-xl transition cursor-pointer border border-[#4A3AFF]/10 shadow-xs"
+              className="inline-flex items-center gap-1.5 px-3 py-1 bg-orange-50 hover:bg-orange-100 text-[#EA580C] text-xs font-bold rounded-xl transition cursor-pointer border border-orange-200 shadow-xs"
             >
               <Pencil size={12} />
               <span>Edit Details</span>
@@ -290,12 +292,12 @@ const Profile = () => {
             {/* Full Name Row */}
             <div className="flex items-center justify-between py-2.5 px-1">
               <div className="flex items-center gap-3.5">
-                <div className="w-10 h-10 rounded-full bg-[#F4F2FF] text-[#4A3AFF] flex items-center justify-center shrink-0">
+                <div className="w-10 h-10 rounded-full bg-orange-50 text-[#EA580C] flex items-center justify-center shrink-0">
                   <User size={19} />
                 </div>
                 <div>
                   <span className="text-[11px] text-gray-400 font-bold uppercase tracking-wider block">Full Name</span>
-                  <span className="text-sm font-extrabold text-[#0F172A]">{user?.name || 'arjun'}</span>
+                  <span className="text-sm font-extrabold text-[#18181B]">{user?.name || 'arjun'}</span>
                 </div>
               </div>
             </div>
@@ -303,31 +305,31 @@ const Profile = () => {
             {/* Email Address Row */}
             <div className="flex items-center justify-between py-2.5 px-1">
               <div className="flex items-center gap-3.5">
-                <div className="w-10 h-10 rounded-full bg-[#EFF6FF] text-[#2563EB] flex items-center justify-center shrink-0">
+                <div className="w-10 h-10 rounded-full bg-red-50 text-[#EF4444] flex items-center justify-center shrink-0">
                   <Mail size={19} />
                 </div>
                 <div>
                   <span className="text-[11px] text-gray-400 font-bold uppercase tracking-wider block">Email Address</span>
-                  <span className="text-sm font-extrabold text-[#0F172A]">{user?.email || 'arjun01@gmail.com'}</span>
+                  <span className="text-sm font-extrabold text-[#18181B]">{user?.email || 'arjun01@gmail.com'}</span>
                 </div>
               </div>
             </div>
           </div>
         </div>
 
-        {/* 3. Wallet Balance Card (Very Prominent Gradient Banner) */}
-        <div className="relative overflow-hidden rounded-[24px] p-5 bg-gradient-to-r from-[#172554] via-[#1E40AF] to-[#6366F1] text-white shadow-xl flex items-center justify-between">
-          {/* Background Abstract Curved Wave Decor */}
-          <div className="absolute right-0 top-0 bottom-0 w-2/3 bg-gradient-to-l from-white/10 via-white/5 to-transparent rounded-l-full pointer-events-none"></div>
-          <div className="absolute -bottom-10 -right-10 w-36 h-36 bg-[#8B5CF6]/30 rounded-full blur-2xl pointer-events-none"></div>
+        {/* 3. Wallet Balance Card (Flame Orange to Crimson Banner) */}
+        <div className="relative overflow-hidden rounded-[26px] p-5 bg-gradient-to-r from-[#C2410C] via-[#EA580C] to-[#DC2626] text-white shadow-lg shadow-orange-500/20 flex items-center justify-between">
+          {/* Background Ambient Decor */}
+          <div className="absolute right-0 top-0 bottom-0 w-2/3 bg-gradient-to-l from-white/15 via-white/5 to-transparent rounded-l-full pointer-events-none"></div>
+          <div className="absolute -bottom-10 -right-10 w-36 h-36 bg-amber-400/20 rounded-full blur-2xl pointer-events-none"></div>
 
           {/* Left Info: Wallet Icon + Amount */}
           <div className="flex items-center gap-3.5 relative z-10">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-[#3B82F6] to-[#8B5CF6] p-0.5 flex items-center justify-center shadow-lg shadow-blue-500/30 shrink-0">
+            <div className="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-md border border-white/25 flex items-center justify-center shadow-md shadow-orange-950/20 shrink-0">
               <Wallet size={22} className="text-white" />
             </div>
             <div>
-              <span className="text-xs text-blue-100/90 font-medium block">Wallet Balance</span>
+              <span className="text-xs text-orange-100 font-bold block">Wallet Balance</span>
               <div className="flex items-center gap-2 mt-0.5">
                 <span className="text-2xl font-black text-white tracking-tight">
                   ₹ {((user?.walletBalance || 0) / 100).toLocaleString('en-IN')}
@@ -335,7 +337,7 @@ const Profile = () => {
                 <button 
                   type="button"
                   onClick={() => navigate('/services/history')}
-                  className="w-5 h-5 rounded-full bg-white/15 flex items-center justify-center text-white/90 hover:bg-white/25 transition cursor-pointer"
+                  className="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center text-white hover:bg-white/30 transition cursor-pointer"
                   title="View Transaction History"
                 >
                   <ChevronRight size={12} strokeWidth={3} />
@@ -348,7 +350,7 @@ const Profile = () => {
           <button
             type="button"
             onClick={() => navigate('/add-cash')}
-            className="relative z-10 px-5 py-2.5 bg-gradient-to-r from-[#5B51D8] to-[#7C3AED] hover:from-[#4E44CB] hover:to-[#6D28D9] text-white text-xs font-black rounded-2xl shadow-lg shadow-indigo-950/40 transition hover:scale-105 active:scale-95 cursor-pointer shrink-0"
+            className="relative z-10 px-5 py-2.5 bg-white hover:bg-orange-50 text-[#EA580C] text-xs font-black rounded-xl shadow-md shadow-black/10 transition hover:scale-105 active:scale-95 cursor-pointer shrink-0"
           >
             Add Cash
           </button>
@@ -366,14 +368,14 @@ const Profile = () => {
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="font-extrabold text-[#0F172A] text-sm sm:text-base">Refer & Earn ₹100</span>
+                  <span className="font-extrabold text-[#0F172A] text-sm sm:text-base">Refer & Earn ₹{referrerBonusRupees || 100}</span>
                   <span className="px-2 py-0.5 rounded-full bg-pink-100 text-pink-700 text-[10px] font-black uppercase">
                     Bonus
                   </span>
                 </div>
                 <div className="flex items-center gap-2 mt-1">
                   <span className="text-xs font-mono font-black text-[#4A3AFF] bg-white px-2 py-0.5 rounded-lg border border-indigo-100">
-                    {user?.referralCode || 'THECASHLY'}
+                    {user?.referralCode || 'EARNBUDDY'}
                   </span>
                   <button
                     type="button"
@@ -414,12 +416,12 @@ const Profile = () => {
               </div>
               <div>
                 <span className="font-extrabold text-[#0F172A] text-sm block">Refer & Earn</span>
-                <span className="text-xs text-[#64748B] font-medium">Invite friends and earn ₹100 per referral</span>
+                <span className="text-xs text-[#64748B] font-medium">Invite friends and earn ₹{referrerBonusRupees || 100} per referral</span>
               </div>
             </div>
             <div className="flex items-center gap-2">
               <span className="text-[11px] font-black text-pink-600 bg-pink-50 px-2.5 py-0.5 rounded-full uppercase">
-                Earn ₹100
+                Earn ₹{referrerBonusRupees || 100}
               </span>
               <ChevronRight size={18} className="text-gray-300 group-hover:text-[#EC4899] transition-colors" />
             </div>
@@ -855,7 +857,7 @@ const Profile = () => {
 
             <div className="text-xs text-gray-600 space-y-3 leading-relaxed">
               <p className="font-semibold text-gray-800">
-                At The Cashly, your privacy, transaction records, and personal security are our top priorities.
+                At EarnBuddy, your privacy, transaction records, and personal security are our top priorities.
               </p>
               <div className="p-3 bg-emerald-50 rounded-xl text-emerald-800 space-y-1">
                 <p className="font-bold">✓ End-to-End Encryption</p>

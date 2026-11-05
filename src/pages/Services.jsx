@@ -1,18 +1,22 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Package, Banknote, History, Calendar, HelpCircle, FileText, ChevronRight, LayoutGrid, Gift } from 'lucide-react';
+import { useReferralSetting } from '../context/ReferralSettingContext';
 
 const Services = () => {
+  const { referrerBonusRupees } = useReferralSetting();
+  const bonusVal = referrerBonusRupees || 100;
+
   const serviceLinks = [
     { 
       name: 'Refer & Earn', 
       icon: Gift, 
       path: '/services/refer-and-earn', 
-      desc: 'Invite friends & earn ₹100 per referral',
+      desc: `Invite friends & earn ₹${bonusVal} per referral`,
       color: 'text-[#EC4899]',
       bg: 'bg-[#FDF2F8]',
       border: 'group-hover:border-[#EC4899]',
-      badge: '₹100 Bonus'
+      badge: `₹${bonusVal} Bonus`
     },
     { 
       name: 'My Products', 

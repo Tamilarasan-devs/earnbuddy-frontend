@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import api from '../../lib/axios';
+import { useModal } from '../../context/ModalContext';
 import { 
   Headphones, 
   MessageSquare, 
@@ -28,6 +29,7 @@ const CATEGORIES = [
 ];
 
 const Support = () => {
+  const { showAlert } = useModal();
   const [tickets, setTickets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -110,7 +112,7 @@ const Support = () => {
         await fetchTickets();
       }
     } catch (err) {
-      alert(err.response?.data?.error || 'Failed to send reply');
+      await showAlert(err.response?.data?.error || 'Failed to send reply', 'error');
     } finally {
       setReplyingId(null);
     }
@@ -396,7 +398,7 @@ const Support = () => {
                               <div className="flex items-center justify-between mb-1 gap-2">
                                 <div className="flex items-center gap-1.5">
                                   <span className={`text-[11px] font-extrabold ${isAdmin ? 'text-[#4A3AFF]' : 'text-[#0F172A]'}`}>
-                                    {isAdmin ? 'The Cashly Support Team' : 'You'}
+                                    {isAdmin ? 'EarnBuddy Support Team' : 'You'}
                                   </span>
                                   {isAdmin && (
                                     <span className="text-[9px] font-black uppercase tracking-wider bg-[#4A3AFF] text-white px-1.5 py-0.2 rounded">

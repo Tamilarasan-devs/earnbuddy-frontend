@@ -42,7 +42,7 @@ const AdminLayout = () => {
             <div className="w-9 h-9 bg-[#4A3AFF] rounded-xl flex items-center justify-center shadow-md shadow-[#4A3AFF]/20">
               <Wallet size={20} className="text-white" fill="currentColor" />
             </div>
-            <h1 className="text-2xl font-extrabold text-[#0F172A] tracking-tight">The Cashly</h1>
+            <h1 className="text-2xl font-extrabold text-[#0F172A] tracking-tight">EarnBuddy</h1>
           </div>
           <button className="lg:hidden text-gray-400 hover:text-gray-600" onClick={closeMobileMenu}>
             <X size={24} />

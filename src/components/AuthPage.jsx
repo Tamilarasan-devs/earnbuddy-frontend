@@ -17,11 +17,15 @@ import {
   Zap,
 } from "lucide-react";
 
+import SignupSuccessModal from "./SignupSuccessModal";
+
 export default function AuthPage() {
   const [activeTab, setActiveTab] = useState("login");
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   const [showReferralInput, setShowReferralInput] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [signedUpName, setSignedUpName] = useState("");
   const navigate = useNavigate();
 
   const [loginData, setLoginData] = useState({ identifier: "", password: "" });
@@ -69,7 +73,7 @@ export default function AuthPage() {
     try {
       const emailVal = signupData.mobileNumber.includes('@')
         ? signupData.mobileNumber
-        : `${signupData.username.toLowerCase().replace(/[^a-z0-9]/g, '') || 'user'}@thecashly.com`;
+        : `${signupData.username.toLowerCase().replace(/[^a-z0-9]/g, '') || 'user'}@earnbuddy.com`;
       const response = await api.post('/auth/register', {
         name: signupData.username,
         email: emailVal,
@@ -80,7 +84,8 @@ export default function AuthPage() {
       if (response.data.data?.token || response.data.token) {
         localStorage.setItem("token", response.data.data?.token || response.data.token);
       }
-      navigate("/home");
+      setSignedUpName(signupData.username);
+      setShowSuccessModal(true);
     } catch (err) {
       setErrorMsg(err.response?.data?.error || err.response?.data?.message || "Registration failed. Please try again.");
     } finally {
@@ -176,7 +181,7 @@ export default function AuthPage() {
               </div>
             </div>
             <span className="text-2xl font-bold tracking-tight text-white">
-              THE<span className="text-amber-300">CASHLY</span>
+              EARN<span className="text-amber-300">BUDDY</span>
             </span>
           </div>
 
@@ -287,7 +292,7 @@ export default function AuthPage() {
                 </div>
               </div>
               <span className="text-2xl font-bold tracking-tight text-white drop-shadow-md">
-                THE<span className="text-amber-300">CASHLY</span>
+                EARN<span className="text-amber-300">BUDDY</span>
               </span>
             </div>
             <h1 className="text-white text-xl font-bold leading-tight text-center drop-shadow-sm px-4">
@@ -573,6 +578,16 @@ export default function AuthPage() {
           </p>
         </div>
       </div>
+
+      {/* Congratulations & Earn More Money Modal */}
+      <SignupSuccessModal
+        isOpen={showSuccessModal}
+        userName={signedUpName}
+        onClose={() => {
+          setShowSuccessModal(false);
+          navigate("/");
+        }}
+      />
     </div>
   );
 }

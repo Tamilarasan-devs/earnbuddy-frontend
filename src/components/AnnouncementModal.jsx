@@ -62,7 +62,7 @@ const AnnouncementModal = ({ isOpen, onClose, onClaim }) => {
             {/* Crown Logo Badge */}
             <div className="flex items-center gap-1.5 text-xs font-black tracking-widest text-[#FBBF24] uppercase">
               <Crown size={15} className="fill-[#FBBF24] text-[#FBBF24] drop-shadow-md" />
-              <span>THE CASHLY</span>
+              <span>EARNBUDDY</span>
             </div>
 
             {/* 3D Gold Headline */}
@@ -80,7 +80,7 @@ const AnnouncementModal = ({ isOpen, onClose, onClaim }) => {
           <div className="relative mx-3.5 my-1.5 rounded-2xl overflow-hidden border border-white/10 shadow-[0_8px_25px_rgba(0,0,0,0.7)] group">
             <img
               src="/cashly_bonus.jpg"
-              alt="The Cashly Brand New Bonus"
+              alt="EarnBuddy Brand New Bonus"
               className="w-full h-48 sm:h-52 object-cover object-center transform group-hover:scale-105 transition-transform duration-500"
             />
 
