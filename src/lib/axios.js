@@ -1,8 +1,8 @@
 import axios from 'axios';
 
 const api = axios.create({
-  // baseURL: import.meta.env.VITE_API_URL || 'https://earnbuddy-backend.onrender.com/api/earnbuddy',
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5001/api/earnbuddy',
+  baseURL: import.meta.env.VITE_API_URL || 'https://thecashly-backend.onrender.com/api/earnbuddy',
+  // baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5001/api/earnbuddy',
   headers: {
     'Content-Type': 'application/json',
     'x-app-source': 'earnbuddy',
