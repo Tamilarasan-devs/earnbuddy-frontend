@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Wallet, Mail, Lock, ArrowRight, Eye, EyeOff, AlertCircle, X, Loader2 } from 'lucide-react';
+import { Wallet, Smartphone, Lock, ArrowRight, Eye, EyeOff, AlertCircle, X, Loader2 } from 'lucide-react';
 
 const Login = () => {
-  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
-  const [fieldError, setFieldError] = useState(''); // 'email' | 'password' | 'all' | 'general' | ''
+  const [fieldError, setFieldError] = useState(''); // 'phone' | 'password' | 'all' | 'general' | ''
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [shakeKey, setShakeKey] = useState(0);
@@ -19,10 +19,11 @@ const Login = () => {
     setError('');
     setFieldError('');
 
-    const cleanEmail = email.trim();
-    if (!cleanEmail) {
-      setError('Please enter your email address.');
-      setFieldError('email');
+    const rawPhone = phone.trim();
+    const cleanPhone = rawPhone.replace(/\D/g, '').slice(-10);
+    if (!cleanPhone || cleanPhone.length !== 10) {
+      setError('Please enter a valid 10-digit mobile number.');
+      setFieldError('phone');
       setShakeKey((k) => k + 1);
       return;
     }
@@ -35,7 +36,7 @@ const Login = () => {
 
     setLoading(true);
     try {
-      const res = await login(cleanEmail, password);
+      const res = await login(cleanPhone, password);
       if (res.success) {
         if (res.data.role === 'admin') {
           navigate('/admin');
@@ -54,9 +55,10 @@ const Login = () => {
     }
   };
 
-  const handleEmailChange = (e) => {
-    setEmail(e.target.value);
-    if (fieldError === 'email' || fieldError === 'all') {
+  const handlePhoneChange = (e) => {
+    const val = e.target.value.replace(/\D/g, '').slice(0, 10);
+    setPhone(val);
+    if (fieldError === 'phone' || fieldError === 'all') {
       setFieldError('');
       setError('');
     }
@@ -93,7 +95,7 @@ const Login = () => {
         <div className="rounded-[32px] bg-white/85 backdrop-blur-2xl border border-white/60 shadow-[0_20px_50px_rgba(0,0,0,0.25)] p-7 sm:p-9 transition-all">
           <div className="text-center mb-7">
             <h1 className="text-2xl sm:text-3xl font-black text-[#090A0F] tracking-tight mb-2">Welcome Back</h1>
-            <p className="text-slate-600 text-sm font-semibold">Log in to manage your money & daily returns</p>
+            <p className="text-slate-600 text-sm font-semibold">Log in with your mobile number</p>
           </div>
           
           {error && (
@@ -106,12 +108,12 @@ const Login = () => {
               </div>
               <div className="flex-1 text-left">
                 <div className="font-bold text-red-900 text-xs uppercase tracking-wide mb-0.5">
-                  {fieldError === 'email' ? 'Email Not Found' : fieldError === 'password' ? 'Incorrect Password' : 'Login Error'}
+                  {fieldError === 'phone' ? 'Phone Not Found' : fieldError === 'password' ? 'Incorrect Password' : 'Login Error'}
                 </div>
                 <div className="text-xs text-red-700 leading-relaxed font-medium">
                   {error}
                 </div>
-                {fieldError === 'email' && (
+                {fieldError === 'phone' && (
                   <Link 
                     to="/register" 
                     className="inline-block mt-2 text-xs font-bold text-[#EA580C] hover:underline"
@@ -133,28 +135,32 @@ const Login = () => {
           
           <form onSubmit={handleSubmit} className="space-y-4" noValidate>
             <div className="space-y-1.5">
-              <label className="block text-xs font-bold text-slate-800 uppercase tracking-wider ml-1">Email Address</label>
+              <label className="block text-xs font-bold text-slate-800 uppercase tracking-wider ml-1">Mobile Number</label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center justify-center pointer-events-none">
-                  <Mail size={18} className={fieldError === 'email' || fieldError === 'all' ? "text-red-500" : "text-slate-400"} />
+                  <Smartphone size={18} className={fieldError === 'phone' || fieldError === 'all' ? "text-red-500" : "text-slate-400"} />
+                </div>
+                <div className="absolute inset-y-0 left-10 flex items-center pointer-events-none text-xs font-bold text-slate-500">
+                  +91
                 </div>
                 <input 
-                  type="email" 
+                  type="tel" 
                   required
-                  placeholder="Enter your email"
+                  placeholder="Enter 10-digit number"
+                  maxLength={10}
                   className={`w-full bg-white/90 border ${
-                    fieldError === 'email' || fieldError === 'all' 
+                    fieldError === 'phone' || fieldError === 'all' 
                       ? 'border-red-400 bg-red-50/40 ring-2 ring-red-100 focus:border-red-500 focus:ring-red-200' 
                       : 'border-slate-200 focus:border-[#EA580C] focus:ring-2 focus:ring-orange-500/20'
-                  } text-slate-900 placeholder-slate-400 rounded-full py-3.5 pl-11 pr-4 focus:outline-none focus:bg-white transition-all font-medium shadow-sm text-sm`}
-                  value={email}
-                  onChange={handleEmailChange}
-                  autoComplete="email"
+                  } text-slate-900 placeholder-slate-400 rounded-full py-3.5 pl-20 pr-4 focus:outline-none focus:bg-white transition-all font-semibold tracking-wider shadow-sm text-sm`}
+                  value={phone}
+                  onChange={handlePhoneChange}
+                  autoComplete="tel"
                 />
               </div>
-              {fieldError === 'email' && (
+              {fieldError === 'phone' && (
                 <p className="text-xs font-semibold text-red-600 flex items-center gap-1 mt-1 ml-1">
-                  <AlertCircle size={13} /> Check email address
+                  <AlertCircle size={13} /> Check mobile number
                 </p>
               )}
             </div>

@@ -51,7 +51,7 @@ const Profile = () => {
   };
 
   // Form states
-  const [profileForm, setProfileForm] = useState({ name: user?.name || '', email: user?.email || '' });
+  const [profileForm, setProfileForm] = useState({ name: user?.name || '', phone: user?.phone || '' });
   const [passwordForm, setPasswordForm] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
   const [showPassword, setShowPassword] = useState({ current: false, new: false, confirm: false });
   const [bankForm, setBankForm] = useState({
@@ -62,11 +62,12 @@ const Profile = () => {
     upiId: user?.payoutDetails?.upiId || ''
   });
 
-  // Handle Common Profile Update (Name & Email)
+  // Handle Common Profile Update (Name & Phone)
   const handleUpdateProfile = async (e) => {
     e.preventDefault();
-    if (!profileForm.name.trim() || !profileForm.email.trim()) {
-      setMsg({ text: 'Both name and email are required.', type: 'error' });
+    const cleanPhone = profileForm.phone.replace(/\D/g, '').slice(-10);
+    if (!profileForm.name.trim() || cleanPhone.length !== 10) {
+      setMsg({ text: 'Valid name and 10-digit mobile number are required.', type: 'error' });
       return;
     }
     setLoading(true);
@@ -74,7 +75,7 @@ const Profile = () => {
     try {
       const res = await api.put('/auth/me', { 
         name: profileForm.name.trim(),
-        email: profileForm.email.trim()
+        phone: cleanPhone
       });
       if (res.data.success) {
         await fetchUser();
@@ -277,7 +278,7 @@ const Profile = () => {
             <button
               type="button"
               onClick={() => {
-                setProfileForm({ name: user?.name || '', email: user?.email || '' });
+                setProfileForm({ name: user?.name || '', phone: user?.phone || '' });
                 setMsg({ text: '', type: '' });
                 setActiveModal('profile');
               }}
@@ -302,15 +303,15 @@ const Profile = () => {
               </div>
             </div>
 
-            {/* Email Address Row */}
+            {/* Mobile Number Row */}
             <div className="flex items-center justify-between py-2.5 px-1">
               <div className="flex items-center gap-3.5">
-                <div className="w-10 h-10 rounded-full bg-red-50 text-[#EF4444] flex items-center justify-center shrink-0">
-                  <Mail size={19} />
+                <div className="w-10 h-10 rounded-full bg-orange-50 text-[#EA580C] flex items-center justify-center shrink-0">
+                  <Smartphone size={19} />
                 </div>
                 <div>
-                  <span className="text-[11px] text-gray-400 font-bold uppercase tracking-wider block">Email Address</span>
-                  <span className="text-sm font-extrabold text-[#18181B]">{user?.email || 'arjun01@gmail.com'}</span>
+                  <span className="text-[11px] text-gray-400 font-bold uppercase tracking-wider block">Mobile Number</span>
+                  <span className="text-sm font-extrabold text-[#18181B]">{user?.phone ? `+91 ${user.phone}` : 'N/A'}</span>
                 </div>
               </div>
             </div>
@@ -597,14 +598,18 @@ const Profile = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-gray-600 mb-1">Email Address</label>
-                <input
-                  type="email"
-                  required
-                  value={profileForm.email}
-                  onChange={(e) => setProfileForm({ ...profileForm, email: e.target.value })}
-                  className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-semibold text-[#0F172A] focus:outline-none focus:border-[#4A3AFF]"
-                />
+                <label className="block text-xs font-bold text-gray-600 mb-1">Mobile Number</label>
+                <div className="relative">
+                  <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-xs font-bold text-gray-500 pointer-events-none">+91</span>
+                  <input
+                    type="tel"
+                    required
+                    maxLength={10}
+                    value={profileForm.phone}
+                    onChange={(e) => setProfileForm({ ...profileForm, phone: e.target.value.replace(/\D/g, '').slice(0, 10) })}
+                    className="w-full pl-11 pr-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-semibold text-[#0F172A] focus:outline-none focus:border-[#EA580C]"
+                  />
+                </div>
               </div>
 
               <div className="flex gap-2 pt-2">
